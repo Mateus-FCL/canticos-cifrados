@@ -1,0 +1,25 @@
+---
+import '../styles/base.css';
+
+interface Props {
+  titulo: string;
+}
+
+const { titulo } = Astro.props;
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Sem maximum-scale nem user-scalable=no: a pessoa precisa poder ampliar. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1b3a5c" />
+    <title>{titulo === "Cânticos" ? titulo : `${titulo} · Cânticos`}</title>
+  </head>
+  <body>
+    <main class="pagina">
+      <slot />
+    </main>
+  </body>
+</html>

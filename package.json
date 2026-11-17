@@ -1,0 +1,26 @@
+{
+  "name": "canticos-cifrados",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check:direitos": "node scripts/check-direitos.mjs"
+  },
+  "dependencies": {
+    "astro": "^7.4.12"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@types/node": "^24.19.2",
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0"
+  },
+  "packageManager": "pnpm@10.34.9",
+  "engines": {
+    "node": ">=22"
+  }
+}

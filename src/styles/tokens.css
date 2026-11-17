@@ -1,0 +1,42 @@
+/*
+ * Tokens do protótipo (docs/prototipo/). Cores amostradas das prints.
+ * Tamanhos em rem: seguem a fonte do sistema. Nunca fixar font-size da raiz.
+ */
+:root {
+  /* Cores */
+  --cor-fundo: #ffffff;
+  --cor-superficie: #f1f3f6;
+  --cor-primaria: #1b3a5c;
+  --cor-sobre-primaria: #ffffff;
+  --cor-texto: #121217;
+  --cor-texto-secundario: #4f5763;
+  --cor-borda: #6b788c;
+  --cor-acorde: #b3261f;
+  --cor-aviso: #fff3c4;
+  --cor-foco: #1b3a5c;
+
+  /* Tipografia (16 px = 1rem na fonte padrão) */
+  --fonte: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --texto-min: 1.1875rem; /* 19 px */
+  --texto-corpo: 1.25rem; /* 20 px */
+  --texto-titulo: 1.625rem; /* 26 px */
+  --texto-titulo-grande: 2rem; /* 32 px */
+  --peso-normal: 400;
+  --peso-forte: 700;
+  --entrelinha: 1.5;
+  --entrelinha-titulo: 1.25;
+
+  /* Espaçamento */
+  --espaco-1: 0.25rem;
+  --espaco-2: 0.5rem;
+  --espaco-3: 0.75rem;
+  --espaco-4: 1rem;
+  --espaco-5: 1.5rem;
+  --espaco-6: 2rem;
+
+  /* Formas */
+  --raio: 0.75rem;
+  --borda-largura: 0.125rem;
+  --alvo-toque: 3.75rem; /* 60 px */
+  --largura-max: 40rem;
+}
