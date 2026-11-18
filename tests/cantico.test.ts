@@ -72,6 +72,60 @@ describe('canticoSchema', () => {
     expect(r.success).toBe(false);
   });
 
+  it('tags são opcionais e começam vazias', () => {
+    expect(canticoSchema.parse(cantico).tags).toEqual([]);
+  });
+
+  it('aceita tags e tira espaços das pontas', () => {
+    const r = canticoSchema.parse({ ...cantico, tags: [' louvor ', 'ceia'] });
+    expect(r.tags).toEqual(['louvor', 'ceia']);
+  });
+
+  it('recusa tag vazia ou repetida', () => {
+    expect(canticoSchema.safeParse({ ...cantico, tags: [''] }).success).toBe(false);
+    expect(canticoSchema.safeParse({ ...cantico, tags: ['ceia', 'ceia'] }).success).toBe(false);
+  });
+
+  it('áudio e PDF são opcionais na versão', () => {
+    const r = canticoSchema.parse(cantico);
+    expect(r.versoes[0]?.audio).toBeUndefined();
+    expect(r.versoes[0]?.pdf).toBeUndefined();
+  });
+
+  it.each([
+    'https://midia.exemplo.org/012-cantico-de-exemplo.mp3',
+    'https://midia.exemplo.org/012.m4a',
+    'https://midia.exemplo.org/012.ogg',
+    'https://midia.exemplo.org/012.opus',
+  ])('aceita o áudio %s', (audio) => {
+    const r = canticoSchema.safeParse({ ...cantico, versoes: [{ ...versao, audio }] });
+    expect(r.success).toBe(true);
+  });
+
+  it.each([
+    'http://midia.exemplo.org/012.mp3',
+    'https://midia.exemplo.org/012.pdf',
+    '012.mp3',
+    '',
+  ])('recusa o áudio "%s"', (audio) => {
+    const r = canticoSchema.safeParse({ ...cantico, versoes: [{ ...versao, audio }] });
+    expect(r.success).toBe(false);
+  });
+
+  it('aceita PDF com https e extensão .pdf', () => {
+    const pdf = 'https://midia.exemplo.org/012-cantico-de-exemplo.pdf';
+    const r = canticoSchema.parse({ ...cantico, versoes: [{ ...versao, pdf }] });
+    expect(r.versoes[0]?.pdf).toBe(pdf);
+  });
+
+  it.each(['http://midia.exemplo.org/012.pdf', 'https://midia.exemplo.org/012.mp3', '012.pdf'])(
+    'recusa o PDF "%s"',
+    (pdf) => {
+      const r = canticoSchema.safeParse({ ...cantico, versoes: [{ ...versao, pdf }] });
+      expect(r.success).toBe(false);
+    },
+  );
+
   it('direitos são informativos e opcionais', () => {
     const direitos = { origemLetra: 'Autoria própria', origemCifra: 'Autoria própria' };
     const r = canticoSchema.parse({ ...cantico, versoes: [{ ...versao, direitos }] });

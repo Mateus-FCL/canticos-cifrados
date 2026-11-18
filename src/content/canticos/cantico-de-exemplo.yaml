@@ -3,6 +3,8 @@ numero: 12
 titulo: Cântico de Exemplo
 pessoas:
   - Equipe do app
+tags:
+  - louvor
 versoes:
   - tom: G
     compasso: 4/4
