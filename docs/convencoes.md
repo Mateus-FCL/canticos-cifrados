@@ -71,9 +71,18 @@ escreve só na brasileira. Casos obrigatórios de teste: `C7M`, `Cm7M`, `C+`,
 Um arquivo YAML por cântico em `src/content/canticos/`. O formato está em
 `src/lib/cantico.ts`.
 
-- **Cântico**: `numero?`, `titulo`, `historia?`, `pessoas`, `versoes`
-- **Versão**: `tom`, `compasso`, `bpm`, `chordpro`, `direitos?`
+- **Cântico**: `numero?`, `titulo`, `historia?`, `pessoas`, `tags`, `versoes`
+- **Versão**: `tom`, `compasso`, `bpm`, `chordpro`, `audio?`, `pdf?`, `direitos?`
 - **Direitos** (informativo): `origemLetra?`, `origemCifra?`
+
+`tags` serve para filtrar a lista e não pode repetir. `audio` (áudio de
+referência para a rolagem, nunca tocado para o usuário) e `pdf` ficam na
+versão, porque mudam com o arranjo, e são endereços `https` (por exemplo, no R2).
+O padrão de nomes dos arquivos no R2 ainda vai ser definido (issue #3).
+
+Formato escolhido no lugar de `cantico.md` + `cifra.cho` com ChordSheetJS
+(issue #8): o ChordSheetJS é GPL-2.0 (regra 3) e usa a notação americana, e o
+painel de cadastro (Sveltia CMS) trabalha melhor com um arquivo por cântico.
 
 A letra não é um campo à parte: ela sai do `chordpro`, tirando os acordes.
 Assim letra e cifra nunca ficam diferentes.
