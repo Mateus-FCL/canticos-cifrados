@@ -1,0 +1,209 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { getCollection, type CollectionEntry } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { lerChordpro } from '../../lib/chordpro';
+import { palavrasDaLinha, soAcordes } from '../../lib/palavras';
+
+export const getStaticPaths = (async () => {
+  const canticos = await getCollection('canticos');
+  return canticos.map((cantico) => ({ params: { id: cantico.id }, props: { cantico } }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  cantico: CollectionEntry<'canticos'>;
+}
+
+const { cantico } = Astro.props;
+const { numero, titulo, versoes } = cantico.data;
+// Por enquanto mostra a primeira versão; escolher entre versões fica para depois.
+const versao = versoes[0];
+const secoes = versao ? lerChordpro(versao.chordpro) : [];
+const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
+---
+
+<Base titulo={titulo}>
+  <a class="botao voltar" data-variante="secundario" href="/">← Voltar</a>
+
+  <h1>{tituloCompleto}</h1>
+
+  <!-- A troca de modo só aparece com JavaScript; sem ele, fica letra e cifra. -->
+  <div class="modos" role="group" aria-label="O que mostrar" hidden>
+    <button type="button" class="modo" data-modo="cifra" aria-pressed="true">Letra e cifra</button>
+    <button type="button" class="modo" data-modo="letra" aria-pressed="false">Só letra</button>
+  </div>
+
+  <article class="cifra" data-modo="cifra">
+    {
+      secoes.map((secao) => (
+        <section class:list={['secao', { refrao: secao.refrao }]}>
+          {secao.titulo && <h2 class="titulo-secao">{secao.titulo}</h2>}
+          {secao.linhas.map((linha) => (
+            <p class="linha" data-so-acordes={soAcordes(linha) ? '' : undefined}>
+              {palavrasDaLinha(linha).map((palavra) => (
+                <>
+                  <span class="palavra">
+                    {palavra.map((peca) => (
+                      <span class="peca">
+                        <span class:list={['acorde', { 'nao-acorde': peca.naoAcorde }]}>{peca.acorde ?? ''}</span>
+                        <span class="texto">{peca.texto}</span>
+                      </span>
+                    ))}
+                  </span>{' '}
+                </>
+              ))}
+            </p>
+          ))}
+        </section>
+      ))
+    }
+  </article>
+</Base>
+
+<script>
+  // Letra e cifra / Só letra. A escolha fica guardada neste aparelho.
+  const CHAVE = 'canticos:modo';
+  const grupo = document.querySelector<HTMLElement>('.modos');
+  const cifra = document.querySelector<HTMLElement>('.cifra');
+  const botoes = [...document.querySelectorAll<HTMLButtonElement>('.modo')];
+
+  const aplicar = (modo: string) => {
+    if (!cifra) return;
+    cifra.dataset['modo'] = modo;
+    for (const b of botoes) b.setAttribute('aria-pressed', String(b.dataset['modo'] === modo));
+  };
+
+  if (grupo && cifra) {
+    grupo.hidden = false;
+    let salvo: string | null = null;
+    try {
+      salvo = localStorage.getItem(CHAVE);
+    } catch {}
+    if (salvo === 'letra' || salvo === 'cifra') aplicar(salvo);
+
+    for (const botao of botoes) {
+      botao.addEventListener('click', () => {
+        const modo = botao.dataset['modo'] ?? 'cifra';
+        aplicar(modo);
+        try {
+          localStorage.setItem(CHAVE, modo);
+        } catch {}
+      });
+    }
+  }
+
+  // A tela não apaga enquanto o cântico está aberto (não é opção do usuário).
+  let trava: WakeLockSentinel | null = null;
+  const manterTelaAcesa = async () => {
+    if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+    try {
+      trava = await navigator.wakeLock.request('screen');
+    } catch {
+      // Sem permissão ou bateria fraca: segue sem travar a tela.
+    }
+  };
+  // O navegador solta a trava quando a aba some; pede de novo ao voltar.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && (trava === null || trava.released)) void manterTelaAcesa();
+  });
+  void manterTelaAcesa();
+</script>
+
+<style>
+  .voltar {
+    margin-block: var(--espaco-4) var(--espaco-4);
+  }
+
+  h1 {
+    font-size: var(--texto-titulo);
+    margin-bottom: var(--espaco-4);
+  }
+
+  .modos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espaco-2);
+    padding: var(--espaco-1);
+    border: var(--borda-largura) solid var(--cor-borda);
+    border-radius: var(--raio);
+    margin-bottom: var(--espaco-4);
+  }
+
+  .modos[hidden] {
+    display: none;
+  }
+
+  .modo {
+    flex: 1 1 8em;
+    min-height: var(--alvo-toque);
+    padding: var(--espaco-2) var(--espaco-3);
+    border: var(--borda-largura) solid var(--cor-borda);
+    border-radius: calc(var(--raio) - 4px);
+    background: var(--cor-superficie);
+    font-weight: var(--peso-forte);
+    cursor: pointer;
+  }
+
+  .modo[aria-pressed='true'] {
+    border-color: var(--cor-primaria);
+    background: var(--cor-primaria);
+    color: var(--cor-sobre-primaria);
+  }
+
+  .secao {
+    margin-bottom: var(--espaco-5);
+  }
+
+  .refrao {
+    padding-left: var(--espaco-3);
+    border-left: 4px solid var(--cor-borda);
+  }
+
+  .titulo-secao {
+    font-size: var(--texto-min);
+    font-weight: var(--peso-normal);
+    color: var(--cor-texto-secundario);
+    margin-bottom: var(--espaco-1);
+  }
+
+  .linha {
+    margin-bottom: var(--espaco-2);
+  }
+
+  /* Cada palavra é um bloco: a linha só quebra entre palavras. */
+  .palavra {
+    display: inline-flex;
+    align-items: flex-end;
+    /* Toda palavra tem a fileira do acorde (mesmo vazia); alinhar pela base
+       mantém a letra numa linha só, com ou sem acorde em cima. */
+    vertical-align: bottom;
+  }
+
+  .peca {
+    display: inline-flex;
+    flex-direction: column;
+  }
+
+  .acorde {
+    min-height: calc(1em * var(--entrelinha));
+    padding-right: 0.3em;
+    color: var(--cor-acorde);
+    font-weight: var(--peso-forte);
+    white-space: nowrap;
+  }
+
+  .nao-acorde {
+    color: var(--cor-texto-secundario);
+    font-weight: var(--peso-normal);
+  }
+
+  .texto {
+    white-space: pre;
+  }
+
+  /* Só letra: some a fileira de acordes e as linhas que só têm acordes. */
+  .cifra[data-modo='letra'] .acorde,
+  .cifra[data-modo='letra'] [data-so-acordes] {
+    display: none;
+  }
+</style>
