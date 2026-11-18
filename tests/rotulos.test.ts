@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { rotuloTom } from '../src/lib/rotulos';
+import { rotuloBotaoTom, rotuloTom } from '../src/lib/rotulos';
+
+describe('rotuloBotaoTom', () => {
+  it('escreve como no botão do protótipo', () => {
+    expect(rotuloBotaoTom('G')).toBe('Tom: G');
+  });
+});
 
 describe('rotuloTom', () => {
   it('escreve o tom como no protótipo', () => {

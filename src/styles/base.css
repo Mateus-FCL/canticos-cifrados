@@ -88,6 +88,16 @@ textarea {
   color: var(--cor-primaria);
 }
 
+.botao[data-variante='neutro'] {
+  border-color: var(--cor-borda);
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+}
+
+.botao[hidden] {
+  display: none;
+}
+
 .visualmente-oculto {
   position: absolute;
   width: 1px;

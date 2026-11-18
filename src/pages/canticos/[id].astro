@@ -4,6 +4,7 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import { lerChordpro } from '../../lib/chordpro';
 import { palavrasDaLinha, soAcordes } from '../../lib/palavras';
+import { rotuloBotaoTom } from '../../lib/rotulos';
 
 export const getStaticPaths = (async () => {
   const canticos = await getCollection('canticos');
@@ -27,13 +28,20 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
 
   <h1>{tituloCompleto}</h1>
 
+  <!-- Trocar o tom precisa de JavaScript; sem ele, o botão não aparece. -->
+  <div class="acoes">
+    <button type="button" class="botao abrir-tom" data-variante="primario" hidden>
+      {rotuloBotaoTom(versao?.tom ?? '')}
+    </button>
+  </div>
+
   <!-- A troca de modo só aparece com JavaScript; sem ele, fica letra e cifra. -->
   <div class="modos" role="group" aria-label="O que mostrar" hidden>
     <button type="button" class="modo" data-modo="cifra" aria-pressed="true">Letra e cifra</button>
     <button type="button" class="modo" data-modo="letra" aria-pressed="false">Só letra</button>
   </div>
 
-  <article class="cifra" data-modo="cifra">
+  <article class="cifra" data-modo="cifra" data-id={cantico.id} data-tom={versao?.tom}>
     {
       secoes.map((secao) => (
         <section class:list={['secao', { refrao: secao.refrao }]}>
@@ -45,7 +53,12 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
                   <span class="palavra">
                     {palavra.map((peca) => (
                       <span class="peca">
-                        <span class:list={['acorde', { 'nao-acorde': peca.naoAcorde }]}>{peca.acorde ?? ''}</span>
+                        <span
+                          class:list={['acorde', { 'nao-acorde': peca.naoAcorde }]}
+                          data-acorde={peca.acorde && !peca.naoAcorde ? peca.acorde : undefined}
+                        >
+                          {peca.acorde ?? ''}
+                        </span>
                         <span class="texto">{peca.texto}</span>
                       </span>
                     ))}
@@ -58,9 +71,46 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
       ))
     }
   </article>
+
+  <dialog class="tela-tom" aria-labelledby="titulo-tom">
+    <div class="tela-tom-corpo">
+      <div class="cabecalho-tom">
+        <button type="button" class="botao voltar-tom" data-variante="secundario">← Voltar</button>
+        <h2 id="titulo-tom">Trocar tom</h2>
+      </div>
+
+      <div class="painel-tom">
+        <p class="rotulo-tom">Tom atual</p>
+        <p class="tom-atual" role="status" aria-live="polite">{versao?.tom}</p>
+        <p class="rotulo-tom">Tom original: {versao?.tom}</p>
+      </div>
+
+      <div class="passos">
+        <button type="button" class="botao descer" data-variante="secundario">− Meio tom</button>
+        <button type="button" class="botao subir" data-variante="primario">+ Meio tom</button>
+      </div>
+
+      <button type="button" class="botao original" data-variante="neutro">
+        Voltar ao tom original ({versao?.tom})
+      </button>
+
+      <section class="previa" aria-labelledby="titulo-previa">
+        <h3 class="titulo-previa" id="titulo-previa">Prévia</h3>
+        <div class="previa-linhas"></div>
+      </section>
+    </div>
+
+    <div class="rodape-tom">
+      <button type="button" class="botao concluir-tom" data-variante="primario">Concluído</button>
+    </div>
+  </dialog>
 </Base>
 
 <script>
+  import { iniciarTrocaDeTom } from '../../scripts/tom';
+
+  iniciarTrocaDeTom();
+
   // Letra e cifra / Só letra. A escolha fica guardada neste aparelho.
   const CHAVE = 'canticos:modo';
   const grupo = document.querySelector<HTMLElement>('.modos');
@@ -117,6 +167,112 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
   h1 {
     font-size: var(--texto-titulo);
     margin-bottom: var(--espaco-4);
+  }
+
+  .acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espaco-3);
+    margin-bottom: var(--espaco-4);
+  }
+
+  .acoes .botao {
+    flex: 1 1 8em;
+  }
+
+  .acoes:not(:has(.botao:not([hidden]))) {
+    display: none;
+  }
+
+  /* Tela "Trocar tom": ocupa a tela toda, como no protótipo. */
+  .tela-tom {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: var(--cor-fundo);
+    color: var(--cor-texto);
+  }
+
+  .tela-tom[open] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tela-tom-corpo {
+    flex: 1;
+    width: 100%;
+    max-width: var(--largura-max);
+    margin-inline: auto;
+    padding: var(--espaco-5) var(--espaco-4);
+    display: grid;
+    align-content: start;
+    gap: var(--espaco-4);
+  }
+
+  .cabecalho-tom {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--espaco-3) var(--espaco-5);
+  }
+
+  .painel-tom {
+    padding: var(--espaco-4);
+    border-radius: var(--raio);
+    background: var(--cor-superficie);
+    text-align: center;
+  }
+
+  .rotulo-tom {
+    color: var(--cor-texto-secundario);
+  }
+
+  .tom-atual {
+    font-size: calc(var(--texto-titulo-grande) * 2);
+    font-weight: var(--peso-forte);
+    line-height: 1.2;
+    color: var(--cor-primaria);
+  }
+
+  .passos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espaco-3);
+  }
+
+  .passos .botao {
+    flex: 1 1 7em;
+  }
+
+  .previa {
+    padding: var(--espaco-4);
+    border: var(--borda-largura) solid var(--cor-borda);
+    border-radius: var(--raio);
+  }
+
+  .titulo-previa {
+    font-size: var(--texto-min);
+    font-weight: var(--peso-normal);
+    color: var(--cor-texto-secundario);
+    margin-bottom: var(--espaco-2);
+  }
+
+  .rodape-tom {
+    position: sticky;
+    bottom: 0;
+    padding: var(--espaco-3) var(--espaco-4);
+    background: var(--cor-superficie);
+  }
+
+  .rodape-tom .botao {
+    display: flex;
+    width: 100%;
+    max-width: var(--largura-max);
+    margin-inline: auto;
   }
 
   .modos {
