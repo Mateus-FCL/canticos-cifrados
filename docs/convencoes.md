@@ -44,7 +44,8 @@ Escopo em `docs/spec.md`.
 - Um commit por fatia de funcionalidade. Commit que mistura duas não entra.
 - Sem rodapé, linha de assinatura ou coautoria na mensagem. O commit é de quem
   desenvolveu.
-- Cada fatia numa branch com pull request. O outro revisa antes do merge.
+- Cada fatia numa branch com pull request. Com mais de uma pessoa no projeto,
+  o outro revisa antes do merge; trabalhando sozinho, quem fez a fatia faz o merge.
 
 ## Cifra brasileira
 
