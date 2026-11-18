@@ -31,7 +31,8 @@ Escopo em `docs/spec.md`.
 5. **A cifra segue a convenção brasileira.** Ver abaixo.
 6. **Nenhuma conta de usuário.** Guardar que alguém frequenta uma igreja é
    dado pessoal sensível pela LGPD (art. 5º, II).
-7. **Cântico sem direitos declarados não entra.** O build falha.
+7. **Direitos são só informativos.** A origem da letra e da cifra pode ser
+   anotada no cântico, mas a falta dela não bloqueia o build.
 8. Nada de `innerHTML` com conteúdo externo sem sanitizar. CSP em
    `public/_headers`. Nenhum segredo com prefixo `PUBLIC_`.
 9. Decisão de arquitetura abre ADR. Um passo pequeno por vez, com teste antes
@@ -67,13 +68,17 @@ escreve só na brasileira. Casos obrigatórios de teste: `C7M`, `Cm7M`, `C+`,
 
 ## Modelo de conteúdo
 
-- **Cântico**: `numero?`, `titulo`, `letra`, `historia?`, `pessoas`, `versoes`
-- **Versão**: `tom`, `compasso`, `bpm`, `chordpro`, `direitos`
-- **Direitos**: `origemLetra`, `origemCifra`, `situacao`
-  (`dominio-publico` | `autorizado` | `proprio` | `pendente`)
+Um arquivo YAML por cântico em `src/content/canticos/`. O formato está em
+`src/lib/cantico.ts`.
 
-`numero` é opcional até o ADR-0004. Versão com `situacao: pendente` **falha o
-build**: conteúdo sem origem declarada não entra no repositório.
+- **Cântico**: `numero?`, `titulo`, `historia?`, `pessoas`, `versoes`
+- **Versão**: `tom`, `compasso`, `bpm`, `chordpro`, `direitos?`
+- **Direitos** (informativo): `origemLetra?`, `origemCifra?`
+
+A letra não é um campo à parte: ela sai do `chordpro`, tirando os acordes.
+Assim letra e cifra nunca ficam diferentes.
+
+`numero` é opcional até o ADR-0004, mas não pode se repetir.
 
 ## Rolagem (ADR-0007)
 
@@ -107,4 +112,3 @@ ao mudar a fonte do sistema.
 - `pnpm install --frozen-lockfile`
 - `pnpm dev`, `pnpm test`, `pnpm build`
 - `pnpm licenses list`
-- `pnpm check:direitos`

@@ -1,0 +1,24 @@
+# Cântico fictício, com letra e cifra próprias, para testar o app.
+numero: 12
+titulo: Cântico de Exemplo
+pessoas:
+  - Equipe do app
+versoes:
+  - tom: G
+    compasso: 4/4
+    bpm: 72
+    direitos:
+      origemLetra: Autoria própria (cântico de teste)
+      origemCifra: Autoria própria (cântico de teste)
+    chordpro: |
+      {c: Estrofe 1}
+      [G]Cantamos [C]juntos [D]canção
+      [Em]Com a voz e o [C]coração
+      [G]Hoje e [D]sempre lou[Em]varemos
+      [C]Com a[D]legria e [G]paz
+
+      {c: Estrofe 2}
+      [G]Quando a noite [C]chegar
+      [D]Nossa [C]luz vai bri[G]lhar
+      [Em]Juntos vamos [C]caminhar
+      [D]Sem ter medo de an[G]dar
