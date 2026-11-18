@@ -1,0 +1,13 @@
+# Cântico fictício, com letra e cifra próprias, para testar o app.
+numero: 35
+titulo: Paz no Caminho
+versoes:
+  - tom: C
+    compasso: 3/4
+    bpm: 66
+    chordpro: |
+      {c: Estrofe 1}
+      [C]Pelo caminho [F]vou
+      [G]Passo a passo, em [C]paz
+      [Am]Quem me guia [F]sabe
+      [G]Onde a estrada [C]vai

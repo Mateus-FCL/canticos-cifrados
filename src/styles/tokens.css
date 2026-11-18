@@ -26,13 +26,16 @@
   --entrelinha: 1.5;
   --entrelinha-titulo: 1.25;
 
-  /* Espaçamento */
-  --espaco-1: 0.25rem;
-  --espaco-2: 0.5rem;
-  --espaco-3: 0.75rem;
-  --espaco-4: 1rem;
-  --espaco-5: 1.5rem;
-  --espaco-6: 2rem;
+  /*
+   * Espaçamento em px de propósito: com a fonte do sistema em 200%, espaço em rem
+   * dobraria e roubaria a largura do texto. Quem cresce é o texto, não a margem.
+   */
+  --espaco-1: 4px;
+  --espaco-2: 8px;
+  --espaco-3: 12px;
+  --espaco-4: 16px;
+  --espaco-5: 24px;
+  --espaco-6: 32px;
 
   /* Formas */
   --raio: 0.75rem;

@@ -1,0 +1,15 @@
+# Cântico fictício, com letra e cifra próprias, para testar o app.
+numero: 41
+titulo: Mãos Estendidas
+tags:
+  - comunhão
+versoes:
+  - tom: A
+    compasso: 4/4
+    bpm: 76
+    chordpro: |
+      {c: Estrofe 1}
+      [A]Mãos estendidas [D]para o irmão
+      [E]Mesa servida, [A]repartir o pão
+      [F#m]Ninguém sozinho [D]vai ficar
+      [E]Há sempre um lugar para [A]sentar

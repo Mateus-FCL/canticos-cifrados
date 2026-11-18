@@ -1,8 +1,193 @@
 ---
+import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
+import { itensDaLista, normalizar } from '../lib/lista';
+import { rotuloTom } from '../lib/rotulos';
+
+const itens = itensDaLista(await getCollection('canticos'));
 ---
 
-<Base titulo="Cânticos">
+<Base titulo="Cânticos" aba="canticos">
   <h1>Cânticos</h1>
-  <p>A lista de cânticos chega na próxima etapa.</p>
+
+  <!-- A busca só aparece com JavaScript; sem ele, a lista inteira continua acessível. -->
+  <form class="busca" role="search" hidden>
+    <label for="busca" class="visualmente-oculto">Buscar cântico</label>
+    <input
+      id="busca"
+      type="search"
+      placeholder="Buscar por número ou título"
+      autocomplete="off"
+      enterkeyhint="search"
+    />
+  </form>
+
+  <p class="aviso-busca" role="status" aria-live="polite"></p>
+
+  <ul class="lista" aria-label="Lista de cânticos">
+    {
+      itens.map((item) => (
+        <li data-titulo={normalizar(item.titulo)} data-numero={item.numero ?? ''}>
+          <a class="cartao" href={`/canticos/${item.id}/`}>
+            <span class="conteudo">
+              {item.numero !== undefined && (
+                <span class="numero">
+                  <span class="visualmente-oculto">Número </span>
+                  {item.numero}
+                </span>
+              )}
+              <span class="texto">
+                <span class="titulo">{item.titulo}</span>
+                <span class="tom">{rotuloTom(item.tom)}</span>
+              </span>
+            </span>
+            <span class="seta" aria-hidden="true">
+              ›
+            </span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
 </Base>
+
+<script>
+  import { corresponde } from '../lib/lista';
+
+  const form = document.querySelector<HTMLFormElement>('.busca');
+  const campo = document.querySelector<HTMLInputElement>('#busca');
+  const aviso = document.querySelector<HTMLParagraphElement>('.aviso-busca');
+  const linhas = [...document.querySelectorAll<HTMLLIElement>('.lista > li')];
+
+  if (form && campo && aviso) {
+    form.hidden = false;
+
+    const filtrar = () => {
+      const busca = campo.value;
+      let visiveis = 0;
+
+      for (const li of linhas) {
+        const numero = li.dataset['numero'];
+        const mostra = corresponde(
+          {
+            id: '',
+            titulo: li.dataset['titulo'] ?? '',
+            tom: '',
+            ...(numero ? { numero: Number(numero) } : {}),
+          },
+          busca,
+        );
+        li.hidden = !mostra;
+        if (mostra) visiveis++;
+      }
+
+      if (busca.trim() === '') aviso.textContent = '';
+      else if (visiveis === 0) aviso.textContent = 'Nenhum cântico encontrado.';
+      else aviso.textContent = visiveis === 1 ? '1 cântico encontrado.' : `${visiveis} cânticos encontrados.`;
+    };
+
+    campo.addEventListener('input', filtrar);
+    // Enter só fecha o teclado; a lista já está filtrada.
+    form.addEventListener('submit', (evento) => {
+      evento.preventDefault();
+      campo.blur();
+    });
+    filtrar();
+  }
+</script>
+
+<style>
+  h1 {
+    margin-block: var(--espaco-5) var(--espaco-4);
+  }
+
+  .busca input {
+    width: 100%;
+    min-height: var(--alvo-toque);
+    padding: var(--espaco-2) var(--espaco-4);
+    border: var(--borda-largura) solid var(--cor-primaria);
+    border-radius: var(--raio);
+    background: var(--cor-fundo);
+    font-size: var(--texto-corpo);
+  }
+
+  .busca input::placeholder {
+    color: var(--cor-texto-secundario);
+    opacity: 1;
+  }
+
+  .aviso-busca {
+    margin-block: var(--espaco-3);
+    color: var(--cor-texto-secundario);
+  }
+
+  .aviso-busca:empty {
+    margin-block: var(--espaco-2);
+  }
+
+  .lista {
+    display: grid;
+    gap: var(--espaco-3);
+    margin: 0;
+    padding: 0 0 var(--espaco-4);
+    list-style: none;
+  }
+
+  .cartao {
+    display: flex;
+    align-items: center;
+    gap: var(--espaco-3);
+    min-height: var(--alvo-toque);
+    padding: var(--espaco-3) var(--espaco-4);
+    border-radius: var(--raio);
+    background: var(--cor-superficie);
+    color: var(--cor-texto);
+    text-decoration: none;
+  }
+
+  .conteudo {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap; /* com letra grande, o número sobe para cima do título */
+    align-items: center;
+    gap: var(--espaco-3) var(--espaco-4);
+    min-width: 0;
+  }
+
+  .numero {
+    flex: none;
+    display: grid;
+    place-items: center;
+    min-width: 2em;
+    min-height: 2em;
+    padding: var(--espaco-1);
+    border-radius: var(--raio);
+    background: var(--cor-primaria);
+    color: var(--cor-sobre-primaria);
+    font-size: var(--texto-titulo);
+    font-weight: var(--peso-forte);
+    line-height: 1;
+  }
+
+  .texto {
+    flex: 1 1 9em;
+    display: grid;
+    min-width: 0;
+  }
+
+  .titulo {
+    font-size: var(--texto-titulo);
+    font-weight: var(--peso-forte);
+    line-height: var(--entrelinha-titulo);
+  }
+
+  .tom {
+    color: var(--cor-texto-secundario);
+  }
+
+  .seta {
+    flex: none;
+    color: var(--cor-texto-secundario);
+    font-size: var(--texto-titulo);
+  }
+</style>
