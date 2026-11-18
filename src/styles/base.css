@@ -63,6 +63,31 @@ textarea {
   padding: var(--espaco-5) var(--espaco-4);
 }
 
+/* Botão do protótipo: preenchido (primário) ou contornado (secundário). Vale para <a> e <button>. */
+.botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--alvo-toque);
+  padding: var(--espaco-2) var(--espaco-4);
+  border: var(--borda-largura) solid var(--cor-primaria);
+  border-radius: var(--raio);
+  font-weight: var(--peso-forte);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.botao[data-variante='primario'] {
+  background: var(--cor-primaria);
+  color: var(--cor-sobre-primaria);
+}
+
+.botao[data-variante='secundario'] {
+  background: var(--cor-fundo);
+  color: var(--cor-primaria);
+}
+
 .visualmente-oculto {
   position: absolute;
   width: 1px;

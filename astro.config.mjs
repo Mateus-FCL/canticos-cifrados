@@ -6,4 +6,10 @@ export default defineConfig({
     // CSS sempre em arquivo, para a CSP em public/_headers não precisar de 'unsafe-inline'.
     inlineStylesheets: 'never',
   },
+  vite: {
+    build: {
+      // Mesmo motivo para os scripts: sempre em arquivo, nunca embutidos no HTML.
+      assetsInlineLimit: 0,
+    },
+  },
 });

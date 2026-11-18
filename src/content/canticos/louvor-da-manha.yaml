@@ -1,0 +1,15 @@
+# Cântico fictício, com letra e cifra próprias, para testar o app.
+numero: 27
+titulo: Louvor da Manhã
+tags:
+  - louvor
+versoes:
+  - tom: D
+    compasso: 4/4
+    bpm: 84
+    chordpro: |
+      {c: Estrofe 1}
+      [D]Quando o sol vem [G]despertar
+      [A]Minha voz vai se [D]levantar
+      [Bm]Cada dia é [G]novo dom
+      [A]Canto alegre o [D]mesmo som

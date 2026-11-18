@@ -1,0 +1,13 @@
+# Cântico fictício, com letra e cifra próprias, para testar o app.
+numero: 58
+titulo: Canção da Esperança
+versoes:
+  - tom: E
+    compasso: 6/8
+    bpm: 60
+    chordpro: |
+      {c: Estrofe 1}
+      [E]Mesmo quando a [A]chuva cai
+      [B]Há esperança no [E]olhar
+      [C#m]A semente es[A]pera o sol
+      [B]E começa a [E]brotar

@@ -3,9 +3,16 @@ import '../styles/base.css';
 
 interface Props {
   titulo: string;
+  /** Aba marcada na barra inferior. Sem ela, a barra não aparece. */
+  aba?: 'canticos' | 'setlists';
 }
 
-const { titulo } = Astro.props;
+const { titulo, aba } = Astro.props;
+
+const abas = [
+  { id: 'canticos', rotulo: 'Cânticos', href: '/' },
+  { id: 'setlists', rotulo: 'Setlists', href: '/setlists/' },
+] as const;
 ---
 
 <!doctype html>
@@ -15,11 +22,76 @@ const { titulo } = Astro.props;
     <!-- Sem maximum-scale nem user-scalable=no: a pessoa precisa poder ampliar. -->
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#1b3a5c" />
-    <title>{titulo === "Cânticos" ? titulo : `${titulo} · Cânticos`}</title>
+    <title>{titulo === 'Cânticos' ? titulo : `${titulo} · Cânticos`}</title>
   </head>
   <body>
     <main class="pagina">
       <slot />
     </main>
+    {
+      aba && (
+        <nav class="abas" aria-label="Seções do app">
+          <ul>
+            {abas.map((item) => (
+              <li>
+                <a
+                  class="botao"
+                  data-variante={item.id === aba ? 'primario' : 'secundario'}
+                  href={item.href}
+                  aria-current={item.id === aba ? 'page' : undefined}
+                >
+                  {item.rotulo}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )
+    }
   </body>
 </html>
+
+<style>
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  main {
+    flex: 1;
+  }
+
+  .abas {
+    position: sticky;
+    bottom: 0;
+    background: var(--cor-superficie);
+    padding: var(--espaco-3) var(--espaco-4);
+  }
+
+  /* Tela baixa para o tamanho da letra (ex.: fonte em 200%): a barra fixa cobriria
+     metade da tela, então ela volta a ficar no fim da página. */
+  @media (max-height: 40em) {
+    .abas {
+      position: static;
+    }
+  }
+
+  .abas ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espaco-3);
+    max-width: var(--largura-max);
+    margin: 0 auto;
+    padding: 0;
+    list-style: none;
+  }
+
+  .abas li {
+    flex: 1 1 8rem;
+    display: flex;
+  }
+
+  .abas .botao {
+    flex: 1;
+  }
+</style>
