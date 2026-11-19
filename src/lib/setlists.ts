@@ -33,6 +33,43 @@ export function avisoPosicao(titulo: string, posicao: number, total: number): st
   return `“${titulo}” agora é o ${posicao}º de ${total}.`;
 }
 
+/** “A”, “B” e “C” */
+function juntarNomes(nomes: string[]): string {
+  const entre = nomes.map((n) => `“${n}”`);
+  return entre.length < 2 ? entre.join('') : `${entre.slice(0, -1).join(', ')} e ${entre[entre.length - 1]}`;
+}
+
+function frase(verbo: string, prep: [string, string], nomes: string[]): string {
+  if (nomes.length === 0) return '';
+  const [uma, varias] = prep;
+  return `${verbo} ${nomes.length === 1 ? uma : varias} ${juntarNomes(nomes)}.`;
+}
+
+/** Confirmação depois de mexer, pela tela do cântico, em quais setlists ele está. */
+export function resumoDoCantico(antes: Setlist[], depois: Setlist[], cantico: string): string {
+  const estava = new Set(antes.filter((s) => s.canticos.includes(cantico)).map((s) => s.id));
+  const esta = new Set(depois.filter((s) => s.canticos.includes(cantico)).map((s) => s.id));
+  const entrou = depois.filter((s) => esta.has(s.id) && !estava.has(s.id)).map((s) => s.nome);
+  const saiu = antes.filter((s) => estava.has(s.id) && !esta.has(s.id)).map((s) => s.nome);
+  return [
+    frase('Adicionado', ['à setlist', 'às setlists'], entrou),
+    frase('Tirado', ['da setlist', 'das setlists'], saiu),
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+/** Confirmação depois de escolher cânticos pelo detalhe da setlist. */
+export function resumoDaSetlist(antes: string[], depois: string[]): string {
+  const entrou = depois.filter((c) => !antes.includes(c)).length;
+  const saiu = antes.filter((c) => !depois.includes(c)).length;
+  const conta = (n: number, acao: string) => (n === 1 ? `1 cântico ${acao}` : `${n} cânticos ${acao}s`);
+  if (entrou && saiu) return `${conta(entrou, 'adicionado')} e ${saiu} ${saiu === 1 ? 'tirado' : 'tirados'}.`;
+  if (entrou) return `${conta(entrou, 'adicionado')}.`;
+  if (saiu) return `${conta(saiu, 'tirado')}.`;
+  return '';
+}
+
 /** Troca uma setlist por outra; se a função não mudar nada, devolve a lista como estava. */
 function alterar(lista: Setlist[], id: string, mudar: (s: Setlist) => Setlist): Setlist[] {
   const i = lista.findIndex((s) => s.id === id);

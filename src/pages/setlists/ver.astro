@@ -1,7 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
-import { itensDaLista } from '../../lib/lista';
+import { itensDaLista, normalizar } from '../../lib/lista';
 import { rotuloTom } from '../../lib/rotulos';
 import { NOME_MAX } from '../../lib/setlists';
 
@@ -26,6 +26,7 @@ const canticos = itensDaLista(await getCollection('canticos'));
 
     <p class="vazio" hidden>Esta setlist ainda não tem cânticos.</p>
     <ol class="lista" aria-label="Cânticos da setlist, na ordem"></ol>
+    <button type="button" class="botao abrir-adicionar" data-variante="secundario">+ Adicionar cântico</button>
 
     <div class="aviso-area">
       <p class="aviso" role="status" aria-live="polite"></p>
@@ -72,6 +73,52 @@ const canticos = itensDaLista(await getCollection('canticos'));
     }
   </template>
 
+  <dialog class="tela tela-adicionar" aria-labelledby="titulo-adicionar">
+    <div class="tela-corpo">
+      <div class="tela-cabecalho">
+        <button type="button" class="botao voltar-adicionar" data-variante="secundario">← Voltar</button>
+      </div>
+      <h2 id="titulo-adicionar">Adicionar cânticos</h2>
+      <p class="explica">Marque os cânticos desta setlist. Os novos entram no fim, na ordem em que você marcar.</p>
+      <form class="busca" role="search">
+        <label for="busca-cantico" class="visualmente-oculto">Buscar cântico</label>
+        <input
+          id="busca-cantico"
+          class="campo-texto"
+          type="search"
+          placeholder="Buscar por número ou título"
+          autocomplete="off"
+          enterkeyhint="search"
+        />
+      </form>
+      <p class="aviso-busca" role="status" aria-live="polite"></p>
+      <ul class="opcoes-marcar escolha-canticos" aria-label="Todos os cânticos">
+        {
+          canticos.map((c) => (
+            <li data-titulo={normalizar(c.titulo)} data-numero={c.numero ?? ''}>
+              <label class="opcao">
+                <input type="checkbox" value={c.id} />
+                {c.numero !== undefined && (
+                  <span class="opcao-numero">
+                    <span class="visualmente-oculto">Número </span>
+                    {c.numero}
+                  </span>
+                )}
+                <span class="opcao-texto">
+                  <span class="opcao-nome">{c.titulo}</span>
+                  <span class="opcao-detalhe">{rotuloTom(c.tom)}</span>
+                </span>
+              </label>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+    <div class="tela-rodape">
+      <button type="button" class="botao concluir-adicionar" data-variante="primario">Concluído</button>
+    </div>
+  </dialog>
+
   <dialog class="tela tela-renomear" aria-labelledby="titulo-renomear">
     <form class="formulario" novalidate>
       <div class="tela-corpo">
@@ -117,6 +164,7 @@ const canticos = itensDaLista(await getCollection('canticos'));
 
 <script>
   import {
+    adicionarCantico,
     avisoPosicao,
     descer,
     erroDoNome,
@@ -124,11 +172,13 @@ const canticos = itensDaLista(await getCollection('canticos'));
     limparNome,
     removerCantico,
     renomearSetlist,
+    resumoDaSetlist,
     rotuloQuantidade,
     semAusentes,
     subir,
     type Setlist,
   } from '../../lib/setlists';
+  import { corresponde } from '../../lib/lista';
   import { CHAVE_SETLISTS, carregarSetlists, guardarSetlists } from '../../scripts/setlists';
 
   const q = <T extends Element>(seletor: string) => document.querySelector<T>(seletor)!;
@@ -254,6 +304,61 @@ const canticos = itensDaLista(await getCollection('canticos'));
     const cantico = todas.find((s) => s.id === id)?.canticos.find((c) => !voltou.includes(c));
     avisar(cantico ? `“${tituloDe(cantico)}” voltou para a setlist.${extra}` : '');
     if (cantico) focarNoItem(cantico, '.tirar', '.tirar');
+  });
+
+  // Adicionar cânticos: marca e desmarca; só muda a setlist ao tocar em "Concluído".
+  const telaAdicionar = q<HTMLDialogElement>('.tela-adicionar');
+  const busca = q<HTMLInputElement>('#busca-cantico');
+  const avisoBusca = q<HTMLElement>('.aviso-busca');
+  const opcoes = [...telaAdicionar.querySelectorAll<HTMLLIElement>('.escolha-canticos > li')];
+  let escolhidos: string[] = [];
+
+  const filtrar = () => {
+    let visiveis = 0;
+    for (const li of opcoes) {
+      const numero = li.dataset['numero'];
+      const item = { id: '', titulo: li.dataset['titulo'] ?? '', tom: '', ...(numero ? { numero: Number(numero) } : {}) };
+      li.hidden = !corresponde(item, busca.value);
+      if (!li.hidden) visiveis++;
+    }
+    if (busca.value.trim() === '') avisoBusca.textContent = '';
+    else if (visiveis === 0) avisoBusca.textContent = 'Nenhum cântico encontrado.';
+    else avisoBusca.textContent = visiveis === 1 ? '1 cântico encontrado.' : `${visiveis} cânticos encontrados.`;
+  };
+
+  q('.abrir-adicionar').addEventListener('click', () => {
+    escolhidos = [...(todas.find((s) => s.id === id)?.canticos ?? [])];
+    for (const caixa of telaAdicionar.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')) {
+      caixa.checked = escolhidos.includes(caixa.value);
+    }
+    busca.value = '';
+    filtrar();
+    telaAdicionar.showModal();
+  });
+  busca.addEventListener('input', filtrar);
+  q('.busca').addEventListener('submit', (evento) => {
+    evento.preventDefault();
+    busca.blur();
+  });
+  telaAdicionar.addEventListener('change', (evento) => {
+    const caixa = evento.target as HTMLInputElement;
+    if (caixa.type !== 'checkbox') return;
+    escolhidos = caixa.checked
+      ? [...escolhidos.filter((c) => c !== caixa.value), caixa.value]
+      : escolhidos.filter((c) => c !== caixa.value);
+  });
+  q('.voltar-adicionar').addEventListener('click', () => telaAdicionar.close());
+  q('.concluir-adicionar').addEventListener('click', () => {
+    const antes = todas.find((s) => s.id === id)?.canticos ?? [];
+    for (const c of antes) if (!escolhidos.includes(c)) todas = removerCantico(todas, id, c);
+    for (const c of escolhidos) todas = adicionarCantico(todas, id, c);
+    const resumo = resumoDaSetlist(antes, escolhidos);
+    telaAdicionar.close();
+    if (!resumo) return;
+    antesDeTirar = undefined;
+    const extra = salvar();
+    mostrar();
+    avisar(resumo + extra);
   });
 
   // Renomear
@@ -465,6 +570,31 @@ const canticos = itensDaLista(await getCollection('canticos'));
 
   .opcoes-botoes .botao {
     flex: 1 1 8em;
+  }
+
+  .abrir-adicionar {
+    width: 100%;
+  }
+
+  .explica {
+    color: var(--cor-texto-secundario);
+  }
+
+  .aviso-busca:empty {
+    display: none;
+  }
+
+  .opcoes-marcar li[hidden] {
+    display: none;
+  }
+
+  .opcao-numero {
+    flex: none;
+    min-width: 2em;
+    color: var(--cor-primaria);
+    font-size: var(--texto-titulo);
+    font-weight: var(--peso-forte);
+    text-align: center;
   }
 
   .formulario {

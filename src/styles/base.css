@@ -149,6 +149,8 @@ textarea {
   margin-inline: auto;
   padding: var(--espaco-5) var(--espaco-4);
   display: grid;
+  /* Coluna nunca mais larga que a tela: um campo de texto, com letra grande, não empurra nada para o lado. */
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: var(--espaco-4);
 }
@@ -172,4 +174,77 @@ textarea {
   width: 100%;
   max-width: var(--largura-max);
   margin-inline: auto;
+}
+
+/* Cartão com caixa de marcar (escolher setlists ou cânticos). A área toda é tocável. */
+.opcoes-marcar {
+  display: grid;
+  gap: var(--espaco-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.opcao {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-4);
+  min-height: var(--alvo-toque);
+  padding: var(--espaco-3) var(--espaco-4);
+  border: var(--borda-largura) solid transparent;
+  border-radius: var(--raio);
+  background: var(--cor-superficie);
+  cursor: pointer;
+}
+
+.opcao:has(input:checked) {
+  border-color: var(--cor-primaria);
+}
+
+.opcao input {
+  flex: none;
+  width: 1.75em;
+  height: 1.75em;
+  margin: 0;
+  accent-color: var(--cor-primaria);
+}
+
+.opcao-texto {
+  flex: 1;
+  display: grid;
+  min-width: 0;
+}
+
+.opcao-nome {
+  font-weight: var(--peso-forte);
+  line-height: var(--entrelinha-titulo);
+}
+
+.opcao-detalhe {
+  color: var(--cor-texto-secundario);
+}
+
+/* Campo de texto grande, igual ao da busca. */
+.campo-texto {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--alvo-toque);
+  padding: var(--espaco-2) var(--espaco-4);
+  border: var(--borda-largura) solid var(--cor-primaria);
+  border-radius: var(--raio);
+  background: var(--cor-fundo);
+  font-size: var(--texto-corpo);
+}
+
+.campo-texto[aria-invalid='true'] {
+  border-color: var(--cor-acorde);
+}
+
+.mensagem-erro {
+  color: var(--cor-acorde);
+  font-weight: var(--peso-forte);
+}
+
+.mensagem-erro:empty {
+  display: none;
 }
