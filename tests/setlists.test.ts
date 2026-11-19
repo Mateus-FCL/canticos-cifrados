@@ -12,8 +12,10 @@ import {
   excluirSetlist,
   lerSetlists,
   limparNome,
+  linkNaSetlist,
   removerCantico,
   renomearSetlist,
+  rotuloNavegacao,
   rotuloQuantidade,
   semAusentes,
   subir,
@@ -124,6 +126,17 @@ describe('navegação entre os cânticos da setlist', () => {
 
   it('cântico fora da setlist não tem navegação', () => {
     expect(vizinhos(domingo, 'outro')).toBeUndefined();
+  });
+});
+
+describe('links e rótulo da navegação', () => {
+  it('o link do cântico leva junto a setlist', () => {
+    expect(linkNaSetlist('paz-no-caminho', 'a')).toBe('/canticos/paz-no-caminho/?setlist=a');
+    expect(linkNaSetlist('paz', 'id com espaço')).toBe('/canticos/paz/?setlist=id%20com%20espa%C3%A7o');
+  });
+
+  it('mostra o nome da setlist e a posição', () => {
+    expect(rotuloNavegacao('Culto de domingo', { posicao: 2, total: 4 })).toBe('Culto de domingo · 2 de 4');
   });
 });
 

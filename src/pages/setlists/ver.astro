@@ -54,6 +54,24 @@ const canticos = itensDaLista(await getCollection('canticos'));
               </a>
               <span class="tom">{rotuloTom(c.tom)}</span>
             </span>
+          </div>
+          <div class="controles">
+            <button type="button" class="botao tirar" data-variante="perigo">
+              <svg
+                class="icone"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6" />
+              </svg>
+              <span class="visualmente-oculto">Tirar {c.titulo} da setlist</span>
+            </button>
             <span class="setas">
               <button type="button" class="botao subir" data-variante="secundario">
                 <span aria-hidden="true">↑</span>
@@ -65,9 +83,6 @@ const canticos = itensDaLista(await getCollection('canticos'));
               </button>
             </span>
           </div>
-          <button type="button" class="tirar">
-            Tirar da setlist<span class="visualmente-oculto">: {c.titulo}</span>
-          </button>
         </li>
       ))
     }
@@ -167,6 +182,7 @@ const canticos = itensDaLista(await getCollection('canticos'));
     adicionarCantico,
     avisoPosicao,
     descer,
+    linkNaSetlist,
     erroDoNome,
     excluirSetlist,
     limparNome,
@@ -248,6 +264,7 @@ const canticos = itensDaLista(await getCollection('canticos'));
       ...canticos.map((cantico, i) => {
         const li = modelos.get(cantico)!.cloneNode(true) as HTMLLIElement;
         li.querySelector('.posicao')!.textContent = String(i + 1);
+        li.querySelector<HTMLAnchorElement>('.titulo')!.href = linkNaSetlist(cantico, id);
         li.querySelector<HTMLButtonElement>('.subir')!.disabled = i === 0;
         li.querySelector<HTMLButtonElement>('.descer')!.disabled = i === canticos.length - 1;
         li.querySelector<HTMLElement>('.setas')!.hidden = canticos.length < 2; // um só: nada a ordenar
@@ -257,7 +274,7 @@ const canticos = itensDaLista(await getCollection('canticos'));
 
     const primeiro = canticos[0];
     if (primeiro) {
-      abrirPrimeiro.href = `/canticos/${primeiro}/`;
+      abrirPrimeiro.href = linkNaSetlist(primeiro, id);
       abrirPrimeiro.hidden = false;
     }
   };
@@ -473,7 +490,7 @@ const canticos = itensDaLista(await getCollection('canticos'));
 
   .item {
     display: flex;
-    flex-wrap: wrap; /* com letra grande, as setas descem para baixo do título */
+    flex-wrap: wrap; /* com letra grande, o título desce para baixo do número */
     align-items: center;
     gap: var(--espaco-2) var(--espaco-3);
   }
@@ -508,6 +525,15 @@ const canticos = itensDaLista(await getCollection('canticos'));
     color: var(--cor-texto-secundario);
   }
 
+  /* Lixeira à esquerda, setas à direita: longe uma da outra para não apagar sem querer. */
+  .controles {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--espaco-2);
+    margin-top: var(--espaco-2);
+  }
+
   .setas {
     flex: none;
     display: flex;
@@ -519,7 +545,7 @@ const canticos = itensDaLista(await getCollection('canticos'));
     display: none;
   }
 
-  .setas .botao {
+  .controles .botao {
     min-width: var(--alvo-toque);
     padding: 0;
     font-size: var(--texto-titulo);
@@ -531,14 +557,9 @@ const canticos = itensDaLista(await getCollection('canticos'));
     cursor: default;
   }
 
-  .tirar {
-    min-height: var(--alvo-toque);
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--cor-primaria);
-    text-decoration: underline;
-    cursor: pointer;
+  .icone {
+    width: 1em;
+    height: 1em;
   }
 
   .aviso-area {

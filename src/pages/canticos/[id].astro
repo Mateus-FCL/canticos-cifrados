@@ -174,6 +174,14 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
     </div>
   </dialog>
 
+  <!-- Só aparece quando o cântico foi aberto por uma setlist. -->
+  <nav slot="rodape" class="nav-setlist" aria-label="Cânticos da setlist" hidden>
+    <p class="nav-posicao"></p>
+    <a class="botao nav-anterior" data-variante="secundario" hidden>← Anterior</a>
+    <a class="botao nav-proximo" data-variante="primario" hidden>Próximo →</a>
+    <a class="botao nav-fim" data-variante="primario" hidden>Voltar à setlist</a>
+  </nav>
+
   <template class="modelo-opcao-setlist">
     <li>
       <label class="opcao">
@@ -189,12 +197,14 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
 
 <script>
   import { iniciarAdicionarASetlist } from '../../scripts/adicionar-setlist';
+  import { iniciarNavegacaoNaSetlist } from '../../scripts/navegar-setlist';
   import { iniciarTamanho } from '../../scripts/tamanho';
   import { iniciarTrocaDeTom } from '../../scripts/tom';
 
   iniciarTamanho();
   iniciarTrocaDeTom();
   iniciarAdicionarASetlist();
+  iniciarNavegacaoNaSetlist();
 
   // Letra e cifra / Só letra. A escolha fica guardada neste aparelho.
   const CHAVE = 'canticos:modo';
@@ -259,6 +269,22 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
     flex-wrap: wrap;
     gap: var(--espaco-3);
     margin-bottom: var(--espaco-4);
+  }
+
+  /* Barra de baixo quando o cântico vem de uma setlist: posição em cima, botões embaixo. */
+  .nav-setlist {
+    flex-wrap: wrap;
+    gap: var(--espaco-2) var(--espaco-3);
+  }
+
+  .nav-posicao {
+    flex: 1 0 100%;
+    color: var(--cor-texto-secundario);
+    text-align: center;
+  }
+
+  .nav-setlist .botao {
+    flex: 1 1 7em;
   }
 
   .aviso-setlist {
