@@ -1,0 +1,249 @@
+---
+import Base from '../../layouts/Base.astro';
+import { NOME_MAX } from '../../lib/setlists';
+---
+
+<Base titulo="Setlists" aba="setlists">
+  <h1>Setlists</h1>
+
+  <!-- As setlists ficam guardadas no aparelho e só aparecem com JavaScript. -->
+  <p class="sem-js">Para usar as setlists, o navegador precisa estar com o JavaScript ligado.</p>
+
+  <div class="setlists" hidden>
+    <p class="vazio" hidden>
+      Você ainda não tem setlists. Crie uma para juntar os cânticos de um culto ou de um ensaio.
+    </p>
+    <ul class="lista" aria-label="Suas setlists"></ul>
+    <button type="button" class="botao nova" data-variante="primario">+ Nova setlist</button>
+    <p class="aviso" role="status" aria-live="polite"></p>
+  </div>
+
+  <template class="modelo-cartao">
+    <li>
+      <div class="cartao">
+        <span class="nome"></span>
+        <span class="quantidade"></span>
+      </div>
+    </li>
+  </template>
+
+  <dialog class="tela tela-nova" aria-labelledby="titulo-nova">
+    <form class="formulario" novalidate>
+      <div class="tela-corpo">
+        <div class="tela-cabecalho">
+          <button type="button" class="botao voltar-nova" data-variante="secundario">← Voltar</button>
+        </div>
+        <h2 id="titulo-nova">Nova setlist</h2>
+
+        <div class="campo">
+          <label for="nome-setlist">Nome da setlist</label>
+          <p id="dica-nome" class="dica">Por exemplo: Culto de domingo</p>
+          <input
+            id="nome-setlist"
+            name="nome"
+            type="text"
+            maxlength={NOME_MAX}
+            autocomplete="off"
+            enterkeyhint="done"
+            aria-describedby="dica-nome erro-nome"
+          />
+          <p id="erro-nome" class="erro"></p>
+        </div>
+      </div>
+
+      <div class="tela-rodape">
+        <button type="submit" class="botao" data-variante="primario">Criar setlist</button>
+      </div>
+    </form>
+  </dialog>
+</Base>
+
+<script>
+  import { criarSetlist, erroDoNome, limparNome, rotuloQuantidade, type Setlist } from '../../lib/setlists';
+  import { CHAVE_SETLISTS, carregarSetlists, guardarSetlists, novoId } from '../../scripts/setlists';
+
+  const q = <T extends Element>(seletor: string) => document.querySelector<T>(seletor);
+  const area = q<HTMLElement>('.setlists');
+  const vazio = q<HTMLElement>('.vazio');
+  const ul = q<HTMLUListElement>('.lista');
+  const nova = q<HTMLButtonElement>('.nova');
+  const aviso = q<HTMLElement>('.aviso');
+  const modelo = q<HTMLTemplateElement>('.modelo-cartao');
+  const tela = q<HTMLDialogElement>('.tela-nova');
+  const form = q<HTMLFormElement>('.formulario');
+  const campo = q<HTMLInputElement>('#nome-setlist');
+  const erro = q<HTMLElement>('#erro-nome');
+
+  if (area && vazio && ul && nova && aviso && modelo && tela && form && campo && erro) {
+    let lista: Setlist[] = carregarSetlists();
+
+    const mostrar = () => {
+      vazio.hidden = lista.length > 0;
+      ul.hidden = lista.length === 0;
+      // O cartão vem de um <template> da página, então recebe o CSS dela.
+      ul.replaceChildren(
+        ...lista.map((setlist) => {
+          const li = modelo.content.firstElementChild!.cloneNode(true) as HTMLLIElement;
+          li.querySelector('.nome')!.textContent = setlist.nome;
+          li.querySelector('.quantidade')!.textContent = rotuloQuantidade(setlist.canticos.length);
+          return li;
+        }),
+      );
+    };
+
+    const mostrarErro = (mensagem: string) => {
+      erro.textContent = mensagem;
+      campo.setAttribute('aria-invalid', String(mensagem !== ''));
+    };
+
+    document.querySelector('.sem-js')?.remove();
+    area.hidden = false;
+    mostrar();
+
+    nova.addEventListener('click', () => {
+      form.reset();
+      mostrarErro('');
+      tela.showModal();
+      campo.focus();
+    });
+
+    q('.voltar-nova')?.addEventListener('click', () => tela.close());
+
+    campo.addEventListener('input', () => {
+      if (erro.textContent) mostrarErro('');
+    });
+
+    form.addEventListener('submit', (evento) => {
+      evento.preventDefault();
+      const problema = erroDoNome(campo.value);
+      if (problema) {
+        mostrarErro(problema);
+        campo.focus();
+        return;
+      }
+      lista = criarSetlist(lista, campo.value, novoId());
+      const guardou = guardarSetlists(lista);
+      mostrar();
+      tela.close();
+      const nome = limparNome(campo.value);
+      aviso.textContent = guardou
+        ? `Setlist “${nome}” criada.`
+        : `Setlist “${nome}” criada, mas este navegador não deixou guardar. Ela some ao fechar a página.`;
+    });
+
+    // Mudou em outra aba, ou a pessoa voltou para cá pelo botão "voltar" do celular.
+    window.addEventListener('storage', (evento) => {
+      if (evento.key === CHAVE_SETLISTS || evento.key === null) {
+        lista = carregarSetlists();
+        mostrar();
+      }
+    });
+    window.addEventListener('pageshow', (evento) => {
+      if (evento.persisted) {
+        lista = carregarSetlists();
+        mostrar();
+      }
+    });
+  }
+</script>
+
+<style>
+  h1 {
+    margin-block: var(--espaco-5) var(--espaco-4);
+  }
+
+  .sem-js,
+  .vazio {
+    color: var(--cor-texto-secundario);
+  }
+
+  .setlists {
+    display: grid;
+    gap: var(--espaco-3);
+  }
+
+  .setlists[hidden] {
+    display: none;
+  }
+
+  .lista {
+    display: grid;
+    gap: var(--espaco-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .lista[hidden] {
+    display: none;
+  }
+
+  .cartao {
+    display: grid;
+    min-height: var(--alvo-toque);
+    padding: var(--espaco-3) var(--espaco-4);
+    border-radius: var(--raio);
+    background: var(--cor-superficie);
+    color: var(--cor-texto);
+  }
+
+  .nome {
+    font-size: var(--texto-titulo);
+    font-weight: var(--peso-forte);
+    line-height: var(--entrelinha-titulo);
+  }
+
+  .quantidade {
+    color: var(--cor-texto-secundario);
+  }
+
+  .nova {
+    width: 100%;
+  }
+
+  .aviso:empty {
+    display: none;
+  }
+
+  .formulario {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .campo {
+    display: grid;
+    gap: var(--espaco-2);
+  }
+
+  .campo label {
+    font-weight: var(--peso-forte);
+  }
+
+  .dica {
+    color: var(--cor-texto-secundario);
+  }
+
+  .campo input {
+    width: 100%;
+    min-height: var(--alvo-toque);
+    padding: var(--espaco-2) var(--espaco-4);
+    border: var(--borda-largura) solid var(--cor-primaria);
+    border-radius: var(--raio);
+    background: var(--cor-fundo);
+    font-size: var(--texto-corpo);
+  }
+
+  .campo input[aria-invalid='true'] {
+    border-color: var(--cor-acorde);
+  }
+
+  .erro {
+    color: var(--cor-acorde);
+    font-weight: var(--peso-forte);
+  }
+
+  .erro:empty {
+    display: none;
+  }
+</style>
