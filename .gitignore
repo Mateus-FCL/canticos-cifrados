@@ -1,5 +1,7 @@
 ﻿node_modules/
 dist/
+# Índice da busca na letra gerado para o "pnpm dev" (no build ele vai direto para dist/).
+public/pagefind/
 .astro/
 .DS_Store
 *.local

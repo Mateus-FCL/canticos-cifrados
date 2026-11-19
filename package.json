@@ -3,8 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro check && astro build",
+    "dev": "pnpm run indice:dev && astro dev",
+    "indice:dev": "astro build && pagefind --site dist --output-path public/pagefind",
+    "build": "astro check && astro build && pagefind --site dist",
     "preview": "astro preview",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -15,6 +16,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
     "@types/node": "^24.19.2",
+    "pagefind": "^1.6.0",
     "typescript": "^6.0.3",
     "vitest": "^5.1.0",
     "yaml": "^2.9.1"

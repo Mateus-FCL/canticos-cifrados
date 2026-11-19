@@ -27,7 +27,7 @@ const itens = itensDaLista(await getCollection('canticos'));
   <ul class="lista" aria-label="Lista de cânticos">
     {
       itens.map((item) => (
-        <li data-titulo={normalizar(item.titulo)} data-numero={item.numero ?? ''}>
+        <li data-id={item.id} data-titulo={normalizar(item.titulo)} data-numero={item.numero ?? ''}>
           <a class="cartao" href={`/canticos/${item.id}/`}>
             <span class="conteudo">
               {item.numero !== undefined && (
@@ -49,10 +49,104 @@ const itens = itensDaLista(await getCollection('canticos'));
       ))
     }
   </ul>
+
+  <!-- Resultados pelo texto da letra (índice do Pagefind, gerado no build). -->
+  <section class="na-letra" aria-labelledby="titulo-na-letra" hidden>
+    <h2 id="titulo-na-letra">Encontrado na letra</h2>
+    <ul class="lista resultados-letra"></ul>
+  </section>
+
+  <template class="modelo-resultado">
+    <li>
+      <a class="cartao">
+        <span class="conteudo">
+          <span class="numero">
+            <span class="visualmente-oculto">Número </span>
+            <span class="valor-numero"></span>
+          </span>
+          <span class="texto">
+            <span class="titulo"></span>
+            <span class="trecho"></span>
+          </span>
+        </span>
+        <span class="seta" aria-hidden="true">›</span>
+      </a>
+    </li>
+  </template>
 </Base>
 
 <script>
+  import { avisoDaBusca, deveBuscarNaLetra, idDaUrl, partesDoTrecho } from '../lib/busca';
   import { corresponde } from '../lib/lista';
+
+  interface ResultadoPagefind {
+    url: string;
+    excerpt: string;
+    meta: Record<string, string | undefined>;
+  }
+  interface Pagefind {
+    options(opcoes: object): Promise<void>;
+    search(busca: string): Promise<{ results: { data(): Promise<ResultadoPagefind> }[] } | null>;
+  }
+
+  // O índice é gerado no build (e pelo "pnpm dev" ao iniciar). O endereço vai completo porque,
+  // no "pnpm dev", o Vite acrescentaria "?import" a um caminho que começa com "/" e o arquivo não seria achado.
+  const CAMINHO_PAGEFIND = new URL('/pagefind/pagefind.js', location.href).href;
+  let pagefind: Promise<Pagefind | undefined> | undefined;
+  const carregarPagefind = () =>
+    (pagefind ??= import(/* @vite-ignore */ CAMINHO_PAGEFIND)
+      .then(async (modulo: Pagefind) => {
+        await modulo.options({ excerptLength: 14 });
+        return modulo;
+      })
+      .catch(() => undefined));
+
+  const secaoLetra = document.querySelector<HTMLElement>('.na-letra');
+  const listaLetra = document.querySelector<HTMLUListElement>('.resultados-letra');
+  const modeloResultado = document.querySelector<HTMLTemplateElement>('.modelo-resultado');
+
+  /** Monta o cartão do resultado sem innerHTML: o trecho vira texto e <mark>. */
+  const cartaoDoResultado = (id: string, dado: ResultadoPagefind) => {
+    const li = modeloResultado!.content.firstElementChild!.cloneNode(true) as HTMLLIElement;
+    li.querySelector('a')!.href = `/canticos/${id}/`;
+    const numero = dado.meta['numero'];
+    if (numero) li.querySelector('.valor-numero')!.textContent = numero;
+    else li.querySelector('.numero')!.remove();
+    li.querySelector('.titulo')!.textContent = dado.meta['titulo'] ?? id;
+    li.querySelector('.trecho')!.replaceChildren(
+      '…',
+      ...partesDoTrecho(dado.excerpt).map((parte) => {
+        if (!parte.destaque) return parte.texto;
+        const mark = document.createElement('mark');
+        mark.textContent = parte.texto;
+        return mark;
+      }),
+      '…',
+    );
+    return li;
+  };
+
+  let pedido = 0;
+  /** Busca na letra os cânticos que a busca por título não mostrou. */
+  const buscarNaLetra = async (busca: string, jaMostrados: Set<string>): Promise<number> => {
+    const meu = ++pedido;
+    const limpar = () => {
+      if (secaoLetra) secaoLetra.hidden = true;
+      return 0;
+    };
+    if (!secaoLetra || !listaLetra || !modeloResultado || !deveBuscarNaLetra(busca)) return limpar();
+    const pf = await carregarPagefind();
+    const resposta = await pf?.search(busca);
+    const dados = await Promise.all((resposta?.results ?? []).slice(0, 10).map((r) => r.data()));
+    if (meu !== pedido) return -1; // a pessoa já digitou outra coisa
+    const cartoes = dados.flatMap((dado) => {
+      const id = idDaUrl(dado.url);
+      return id && !jaMostrados.has(id) ? [cartaoDoResultado(id, dado)] : [];
+    });
+    listaLetra.replaceChildren(...cartoes);
+    secaoLetra.hidden = cartoes.length === 0;
+    return cartoes.length;
+  };
 
   const form = document.querySelector<HTMLFormElement>('.busca');
   const campo = document.querySelector<HTMLInputElement>('#busca');
@@ -65,6 +159,7 @@ const itens = itensDaLista(await getCollection('canticos'));
     const filtrar = () => {
       const busca = campo.value;
       let visiveis = 0;
+      const mostrados = new Set<string>();
 
       for (const li of linhas) {
         const numero = li.dataset['numero'];
@@ -78,13 +173,26 @@ const itens = itensDaLista(await getCollection('canticos'));
           busca,
         );
         li.hidden = !mostra;
-        if (mostra) visiveis++;
+        if (mostra) {
+          visiveis++;
+          mostrados.add(li.dataset['id'] ?? '');
+        }
       }
 
-      if (busca.trim() === '') aviso.textContent = '';
-      else if (visiveis === 0) aviso.textContent = 'Nenhum cântico encontrado.';
-      else aviso.textContent = visiveis === 1 ? '1 cântico encontrado.' : `${visiveis} cânticos encontrados.`;
+      if (busca.trim() === '') {
+        aviso.textContent = '';
+        void buscarNaLetra('', mostrados);
+        return;
+      }
+      // Número e título aparecem na hora; a letra completa o aviso logo depois.
+      aviso.textContent = avisoDaBusca(visiveis, 0);
+      clearTimeout(espera);
+      espera = setTimeout(async () => {
+        const naLetra = await buscarNaLetra(busca, mostrados);
+        if (naLetra >= 0) aviso.textContent = avisoDaBusca(visiveis, naLetra);
+      }, 300);
     };
+    let espera: ReturnType<typeof setTimeout> | undefined;
 
     campo.addEventListener('input', filtrar);
     // Enter só fecha o teclado; a lista já está filtrada.
@@ -183,6 +291,26 @@ const itens = itensDaLista(await getCollection('canticos'));
 
   .tom {
     color: var(--cor-texto-secundario);
+  }
+
+  .na-letra {
+    display: grid;
+    gap: var(--espaco-3);
+    padding-bottom: var(--espaco-4);
+  }
+
+  .na-letra[hidden] {
+    display: none;
+  }
+
+  .trecho {
+    color: var(--cor-texto-secundario);
+  }
+
+  .trecho :global(mark) {
+    background: var(--cor-aviso);
+    color: var(--cor-texto);
+    font-weight: var(--peso-forte);
   }
 
   .seta {
