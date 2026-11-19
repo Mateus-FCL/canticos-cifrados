@@ -47,11 +47,21 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
     <button type="button" class="modo" data-modo="letra" aria-pressed="false">Só letra</button>
   </div>
 
-  <article class="cifra" data-modo="cifra" data-id={cantico.id} data-tom={versao?.tom}>
+  <!-- Busca no texto (Pagefind): só a letra entra no índice; acordes e títulos de seção ficam de fora. -->
+  <article
+    class="cifra"
+    data-modo="cifra"
+    data-id={cantico.id}
+    data-tom={versao?.tom}
+    data-pagefind-body
+    data-titulo={titulo}
+    data-numero={numero}
+    data-pagefind-meta="titulo[data-titulo], numero[data-numero]"
+  >
     {
       secoes.map((secao) => (
         <section class:list={['secao', { refrao: secao.refrao }]}>
-          {secao.titulo && <h2 class="titulo-secao">{secao.titulo}</h2>}
+          {secao.titulo && <h2 class="titulo-secao" data-pagefind-ignore>{secao.titulo}</h2>}
           {secao.linhas.map((linha) => (
             <p class="linha" data-so-acordes={soAcordes(linha) ? '' : undefined}>
               {palavrasDaLinha(linha).map((palavra) => (
@@ -61,6 +71,7 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
                       <span class="peca">
                         <span
                           class:list={['acorde', { 'nao-acorde': peca.naoAcorde }]}
+                          data-pagefind-ignore
                           data-acorde={peca.acorde && !peca.naoAcorde ? peca.acorde : undefined}
                         >
                           {peca.acorde ?? ''}
