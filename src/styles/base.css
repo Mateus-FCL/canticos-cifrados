@@ -94,6 +94,13 @@ textarea {
   color: var(--cor-texto);
 }
 
+/* Ação que apaga algo (ex.: excluir setlist): contornado em vermelho, nunca o botão principal. */
+.botao[data-variante='perigo'] {
+  border-color: var(--cor-acorde);
+  background: var(--cor-fundo);
+  color: var(--cor-acorde);
+}
+
 .botao[hidden] {
   display: none;
 }

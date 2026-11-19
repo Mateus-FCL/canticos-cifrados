@@ -29,6 +29,13 @@ const abas = [
       <slot />
     </main>
     {
+      Astro.slots.has('rodape') && (
+        <div class="rodape">
+          <slot name="rodape" />
+        </div>
+      )
+    }
+    {
       aba && (
         <nav class="abas" aria-label="Seções do app">
           <ul>
@@ -61,7 +68,9 @@ const abas = [
     flex: 1;
   }
 
-  .abas {
+  /* Barra fixa embaixo: abas, ou o botão principal de uma tela (ex.: "Abrir o primeiro cântico"). */
+  .abas,
+  .rodape {
     position: sticky;
     bottom: 0;
     background: var(--cor-superficie);
@@ -71,9 +80,22 @@ const abas = [
   /* Tela baixa para o tamanho da letra (ex.: fonte em 200%): a barra fixa cobriria
      metade da tela, então ela volta a ficar no fim da página. */
   @media (max-height: 40em) {
-    .abas {
+    .abas,
+    .rodape {
       position: static;
     }
+  }
+
+  /* O botão do rodapé escondido (ex.: setlist vazia) leva a barra junto. */
+  .rodape:has(> :global([hidden])) {
+    display: none;
+  }
+
+  .rodape > :global(*) {
+    display: flex;
+    width: 100%;
+    max-width: var(--largura-max);
+    margin-inline: auto;
   }
 
   .abas ul {

@@ -20,10 +20,13 @@ import { NOME_MAX } from '../../lib/setlists';
 
   <template class="modelo-cartao">
     <li>
-      <div class="cartao">
-        <span class="nome"></span>
-        <span class="quantidade"></span>
-      </div>
+      <a class="cartao">
+        <span class="texto">
+          <span class="nome"></span>
+          <span class="quantidade"></span>
+        </span>
+        <span class="seta" aria-hidden="true">›</span>
+      </a>
     </li>
   </template>
 
@@ -84,6 +87,7 @@ import { NOME_MAX } from '../../lib/setlists';
       ul.replaceChildren(
         ...lista.map((setlist) => {
           const li = modelo.content.firstElementChild!.cloneNode(true) as HTMLLIElement;
+          li.querySelector('a')!.href = `/setlists/ver/?id=${encodeURIComponent(setlist.id)}`;
           li.querySelector('.nome')!.textContent = setlist.nome;
           li.querySelector('.quantidade')!.textContent = rotuloQuantidade(setlist.canticos.length);
           return li;
@@ -179,12 +183,27 @@ import { NOME_MAX } from '../../lib/setlists';
   }
 
   .cartao {
-    display: grid;
+    display: flex;
+    align-items: center;
+    gap: var(--espaco-3);
     min-height: var(--alvo-toque);
     padding: var(--espaco-3) var(--espaco-4);
     border-radius: var(--raio);
     background: var(--cor-superficie);
     color: var(--cor-texto);
+    text-decoration: none;
+  }
+
+  .texto {
+    flex: 1;
+    display: grid;
+    min-width: 0;
+  }
+
+  .seta {
+    flex: none;
+    color: var(--cor-texto-secundario);
+    font-size: var(--texto-titulo);
   }
 
   .nome {
