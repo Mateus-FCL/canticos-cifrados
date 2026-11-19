@@ -3,6 +3,8 @@ import {
   NOME_MAX,
   adicionarCantico,
   avisoPosicao,
+  resumoDoCantico,
+  resumoDaSetlist,
   criarSetlist,
   descer,
   erroDoNome,
@@ -142,6 +144,44 @@ describe('quantidade, como no protótipo', () => {
 describe('avisos para o leitor de tela', () => {
   it('diz onde o cântico ficou depois de mudar de lugar', () => {
     expect(avisoPosicao('Paz no Caminho', 1, 4)).toBe('“Paz no Caminho” agora é o 1º de 4.');
+  });
+});
+
+describe('resumo depois de adicionar pela tela do cântico', () => {
+  const jovens: Setlist = { id: 'c', nome: 'Culto de jovens', canticos: [] };
+  const antes = [domingo, quinta, jovens];
+
+  it('diz em quais setlists o cântico entrou', () => {
+    const depois = adicionarCantico(adicionarCantico(antes, 'b', 'paz'), 'c', 'paz');
+    expect(resumoDoCantico(antes, depois, 'paz')).toBe('Adicionado às setlists “Ensaio de quinta” e “Culto de jovens”.');
+    expect(resumoDoCantico(antes, adicionarCantico(antes, 'b', 'paz'), 'paz')).toBe(
+      'Adicionado à setlist “Ensaio de quinta”.',
+    );
+  });
+
+  it('diz de onde saiu e quando junta as duas coisas', () => {
+    const depois = adicionarCantico(removerCantico(antes, 'a', 'paz'), 'b', 'paz');
+    expect(resumoDoCantico(antes, depois, 'paz')).toBe(
+      'Adicionado à setlist “Ensaio de quinta”. Tirado da setlist “Culto de domingo”.',
+    );
+  });
+
+  it('conta a setlist nova criada ali mesmo', () => {
+    const depois = adicionarCantico(criarSetlist(antes, 'Natal', 'n'), 'n', 'paz');
+    expect(resumoDoCantico(antes, depois, 'paz')).toBe('Adicionado à setlist “Natal”.');
+  });
+
+  it('fica vazio quando nada mudou', () => {
+    expect(resumoDoCantico(antes, antes, 'paz')).toBe('');
+  });
+});
+
+describe('resumo depois de adicionar pelo detalhe da setlist', () => {
+  it('conta o que entrou e o que saiu', () => {
+    expect(resumoDaSetlist(['a'], ['a', 'b'])).toBe('1 cântico adicionado.');
+    expect(resumoDaSetlist(['a'], ['b', 'c'])).toBe('2 cânticos adicionados e 1 tirado.');
+    expect(resumoDaSetlist(['a', 'b'], [])).toBe('2 cânticos tirados.');
+    expect(resumoDaSetlist(['a'], ['a'])).toBe('');
   });
 });
 

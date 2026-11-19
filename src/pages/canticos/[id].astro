@@ -5,6 +5,7 @@ import Base from '../../layouts/Base.astro';
 import { lerChordpro } from '../../lib/chordpro';
 import { palavrasDaLinha, soAcordes } from '../../lib/palavras';
 import { rotuloBotaoTom } from '../../lib/rotulos';
+import { NOME_MAX } from '../../lib/setlists';
 
 export const getStaticPaths = (async () => {
   const canticos = await getCollection('canticos');
@@ -34,7 +35,11 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
       {rotuloBotaoTom(versao?.tom ?? '')}
     </button>
     <button type="button" class="botao abrir-tamanho" data-variante="secundario" hidden>Tamanho</button>
+    <button type="button" class="botao abrir-setlists" data-variante="secundario" hidden>
+      Adicionar à setlist
+    </button>
   </div>
+  <p class="aviso-setlist" role="status" aria-live="polite"></p>
 
   <!-- A troca de modo só aparece com JavaScript; sem ele, fica letra e cifra. -->
   <div class="modos" role="group" aria-label="O que mostrar" hidden>
@@ -134,14 +139,62 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
       <button type="button" class="botao concluir-tamanho" data-variante="primario">Concluído</button>
     </div>
   </dialog>
+
+  <dialog class="tela tela-setlists" aria-labelledby="titulo-setlists">
+    <div class="tela-corpo">
+      <div class="tela-cabecalho">
+        <button type="button" class="botao voltar-setlists" data-variante="secundario">← Voltar</button>
+      </div>
+      <h2 id="titulo-setlists">Adicionar à setlist</h2>
+      <p class="explica">Marque as setlists em que “{titulo}” deve estar.</p>
+      <p class="sem-setlists" hidden>Você ainda não tem setlists. Crie a primeira aqui embaixo.</p>
+      <ul class="opcoes-marcar" aria-label="Suas setlists"></ul>
+
+      <form class="nova-aqui" novalidate>
+        <label for="nome-nova-setlist">Criar uma setlist nova</label>
+        <div class="linha-nova">
+          <input
+            id="nome-nova-setlist"
+            class="campo-texto"
+            type="text"
+            maxlength={NOME_MAX}
+            autocomplete="off"
+            enterkeyhint="done"
+            placeholder="Por exemplo: Culto de domingo"
+            aria-describedby="erro-nova-setlist"
+          />
+          <button type="submit" class="botao" data-variante="secundario">Criar</button>
+        </div>
+        <p id="erro-nova-setlist" class="mensagem-erro"></p>
+      </form>
+    </div>
+
+    <div class="tela-rodape">
+      <button type="button" class="botao concluir-setlists" data-variante="primario">Concluído</button>
+    </div>
+  </dialog>
+
+  <template class="modelo-opcao-setlist">
+    <li>
+      <label class="opcao">
+        <input type="checkbox" />
+        <span class="opcao-texto">
+          <span class="opcao-nome"></span>
+          <span class="opcao-detalhe"></span>
+        </span>
+      </label>
+    </li>
+  </template>
 </Base>
 
 <script>
+  import { iniciarAdicionarASetlist } from '../../scripts/adicionar-setlist';
   import { iniciarTamanho } from '../../scripts/tamanho';
   import { iniciarTrocaDeTom } from '../../scripts/tom';
 
   iniciarTamanho();
   iniciarTrocaDeTom();
+  iniciarAdicionarASetlist();
 
   // Letra e cifra / Só letra. A escolha fica guardada neste aparelho.
   const CHAVE = 'canticos:modo';
@@ -206,6 +259,52 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
     flex-wrap: wrap;
     gap: var(--espaco-3);
     margin-bottom: var(--espaco-4);
+  }
+
+  .aviso-setlist {
+    margin-bottom: var(--espaco-4);
+    padding: var(--espaco-3) var(--espaco-4);
+    border-radius: var(--raio);
+    background: var(--cor-superficie);
+  }
+
+  .aviso-setlist:empty {
+    display: none;
+  }
+
+  .explica,
+  .sem-setlists {
+    color: var(--cor-texto-secundario);
+  }
+
+  .opcoes-marcar[hidden] {
+    display: none;
+  }
+
+  .nova-aqui {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--espaco-2);
+    margin-top: var(--espaco-3);
+  }
+
+  .nova-aqui label {
+    font-weight: var(--peso-forte);
+  }
+
+  .linha-nova {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espaco-2);
+  }
+
+  .linha-nova .campo-texto {
+    flex: 1 1 10em;
+    width: auto;
+  }
+
+  .linha-nova .botao {
+    flex: 1 0 auto;
   }
 
   .acoes .botao {
