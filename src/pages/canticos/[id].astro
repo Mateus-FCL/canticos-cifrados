@@ -216,42 +216,6 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
     display: none;
   }
 
-  /* Telas "Trocar tom" e "Tamanho da letra": ocupam a tela toda, como no protótipo. */
-  .tela {
-    width: 100%;
-    max-width: none;
-    height: 100%;
-    max-height: none;
-    margin: 0;
-    padding: 0;
-    border: 0;
-    background: var(--cor-fundo);
-    color: var(--cor-texto);
-  }
-
-  .tela[open] {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .tela-corpo {
-    flex: 1;
-    width: 100%;
-    max-width: var(--largura-max);
-    margin-inline: auto;
-    padding: var(--espaco-5) var(--espaco-4);
-    display: grid;
-    align-content: start;
-    gap: var(--espaco-4);
-  }
-
-  .tela-cabecalho {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--espaco-3) var(--espaco-5);
-  }
-
   .painel-tom {
     padding: var(--espaco-4);
     border-radius: var(--raio);
@@ -291,20 +255,6 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
     font-weight: var(--peso-normal);
     color: var(--cor-texto-secundario);
     margin-bottom: var(--espaco-2);
-  }
-
-  .tela-rodape {
-    position: sticky;
-    bottom: 0;
-    padding: var(--espaco-3) var(--espaco-4);
-    background: var(--cor-superficie);
-  }
-
-  .tela-rodape .botao {
-    display: flex;
-    width: 100%;
-    max-width: var(--largura-max);
-    margin-inline: auto;
   }
 
   .modos {
