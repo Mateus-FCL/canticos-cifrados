@@ -28,11 +28,12 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
 
   <h1>{tituloCompleto}</h1>
 
-  <!-- Trocar o tom precisa de JavaScript; sem ele, o botão não aparece. -->
+  <!-- Tom e tamanho precisam de JavaScript; sem ele, os botões não aparecem. -->
   <div class="acoes">
     <button type="button" class="botao abrir-tom" data-variante="primario" hidden>
       {rotuloBotaoTom(versao?.tom ?? '')}
     </button>
+    <button type="button" class="botao abrir-tamanho" data-variante="secundario" hidden>Tamanho</button>
   </div>
 
   <!-- A troca de modo só aparece com JavaScript; sem ele, fica letra e cifra. -->
@@ -72,9 +73,9 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
     }
   </article>
 
-  <dialog class="tela-tom" aria-labelledby="titulo-tom">
-    <div class="tela-tom-corpo">
-      <div class="cabecalho-tom">
+  <dialog class="tela tela-tom" aria-labelledby="titulo-tom">
+    <div class="tela-corpo">
+      <div class="tela-cabecalho">
         <button type="button" class="botao voltar-tom" data-variante="secundario">← Voltar</button>
         <h2 id="titulo-tom">Trocar tom</h2>
       </div>
@@ -100,15 +101,46 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
       </section>
     </div>
 
-    <div class="rodape-tom">
+    <div class="tela-rodape">
       <button type="button" class="botao concluir-tom" data-variante="primario">Concluído</button>
+    </div>
+  </dialog>
+
+  <dialog class="tela tela-tamanho" aria-labelledby="titulo-tamanho">
+    <div class="tela-corpo">
+      <div class="tela-cabecalho">
+        <button type="button" class="botao voltar-tamanho" data-variante="secundario">← Voltar</button>
+      </div>
+      <h2 id="titulo-tamanho">Tamanho da letra</h2>
+
+      <section class="previa" aria-labelledby="titulo-previa-tamanho">
+        <h3 class="titulo-previa" id="titulo-previa-tamanho">Prévia</h3>
+        <div class="previa-tamanho"></div>
+      </section>
+
+      <div class="controle-tamanho">
+        <button type="button" class="botao menor" data-variante="secundario">
+          A−<span class="visualmente-oculto"> diminuir a letra</span>
+        </button>
+        <p class="nivel" role="status" aria-live="polite"></p>
+        <button type="button" class="botao maior" data-variante="primario">
+          A+<span class="visualmente-oculto"> aumentar a letra</span>
+        </button>
+      </div>
+      <div class="barra" aria-hidden="true"></div>
+    </div>
+
+    <div class="tela-rodape">
+      <button type="button" class="botao concluir-tamanho" data-variante="primario">Concluído</button>
     </div>
   </dialog>
 </Base>
 
 <script>
+  import { iniciarTamanho } from '../../scripts/tamanho';
   import { iniciarTrocaDeTom } from '../../scripts/tom';
 
+  iniciarTamanho();
   iniciarTrocaDeTom();
 
   // Letra e cifra / Só letra. A escolha fica guardada neste aparelho.
@@ -184,8 +216,8 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
     display: none;
   }
 
-  /* Tela "Trocar tom": ocupa a tela toda, como no protótipo. */
-  .tela-tom {
+  /* Telas "Trocar tom" e "Tamanho da letra": ocupam a tela toda, como no protótipo. */
+  .tela {
     width: 100%;
     max-width: none;
     height: 100%;
@@ -197,12 +229,12 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
     color: var(--cor-texto);
   }
 
-  .tela-tom[open] {
+  .tela[open] {
     display: flex;
     flex-direction: column;
   }
 
-  .tela-tom-corpo {
+  .tela-corpo {
     flex: 1;
     width: 100%;
     max-width: var(--largura-max);
@@ -213,7 +245,7 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
     gap: var(--espaco-4);
   }
 
-  .cabecalho-tom {
+  .tela-cabecalho {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -261,14 +293,14 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
     margin-bottom: var(--espaco-2);
   }
 
-  .rodape-tom {
+  .tela-rodape {
     position: sticky;
     bottom: 0;
     padding: var(--espaco-3) var(--espaco-4);
     background: var(--cor-superficie);
   }
 
-  .rodape-tom .botao {
+  .tela-rodape .botao {
     display: flex;
     width: 100%;
     max-width: var(--largura-max);
@@ -306,6 +338,60 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
     color: var(--cor-sobre-primaria);
   }
 
+  /* A letra do cântico segue o nível escolhido (1 a 5), por cima da fonte do sistema. */
+  .cifra {
+    font-size: calc(var(--texto-corpo) * var(--escala-letra, 1));
+  }
+
+  .previa-tamanho {
+    font-size: calc(var(--texto-corpo) * var(--escala-previa, 1));
+    /* Nos níveis maiores, a prévia não empurra A− e A+ para fora da tela. */
+    max-height: 40vh;
+    overflow: hidden;
+  }
+
+  .controle-tamanho {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--espaco-3);
+  }
+
+  .controle-tamanho .botao {
+    flex: 1 1 4em;
+    font-size: var(--texto-titulo);
+  }
+
+  .controle-tamanho .botao:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .nivel {
+    flex: 1 1 5em;
+    text-align: center;
+    font-weight: var(--peso-forte);
+    line-height: var(--entrelinha-titulo);
+  }
+
+  .barra {
+    display: flex;
+    gap: var(--espaco-2);
+  }
+
+  /* Os passos da barra são criados pelo script, por isso o :global. */
+  .barra :global(span) {
+    flex: 1;
+    height: 12px;
+    border: var(--borda-largura) solid var(--cor-borda);
+    border-radius: 6px;
+  }
+
+  .barra :global(span[data-cheio]) {
+    border-color: var(--cor-primaria);
+    background: var(--cor-primaria);
+  }
+
   .secao {
     margin-bottom: var(--espaco-5);
   }
@@ -316,7 +402,7 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
   }
 
   .titulo-secao {
-    font-size: var(--texto-min);
+    font-size: 0.95em; /* acompanha o tamanho da letra; 19 px no tamanho normal */
     font-weight: var(--peso-normal);
     color: var(--cor-texto-secundario);
     margin-bottom: var(--espaco-1);
