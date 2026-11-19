@@ -1,0 +1,507 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { itensDaLista } from '../../lib/lista';
+import { rotuloTom } from '../../lib/rotulos';
+import { NOME_MAX } from '../../lib/setlists';
+
+// Todos os cânticos vão para a página como modelo; o script monta só os da setlist,
+// que fica guardada no aparelho (a página é a mesma para todas: /setlists/ver/?id=...).
+const canticos = itensDaLista(await getCollection('canticos'));
+---
+
+<Base titulo="Setlist">
+  <a class="botao voltar" data-variante="secundario" href="/setlists/">← Setlists</a>
+
+  <p class="sem-js">Para usar as setlists, o navegador precisa estar com o JavaScript ligado.</p>
+
+  <div class="nao-encontrada" hidden>
+    <h1>Setlist não encontrada</h1>
+    <p>Ela pode ter sido excluída, ou foi criada em outro aparelho.</p>
+  </div>
+
+  <div class="detalhe" hidden>
+    <h1 class="nome"></h1>
+    <p class="quantidade"></p>
+
+    <p class="vazio" hidden>Esta setlist ainda não tem cânticos.</p>
+    <ol class="lista" aria-label="Cânticos da setlist, na ordem"></ol>
+
+    <div class="aviso-area">
+      <p class="aviso" role="status" aria-live="polite"></p>
+      <button type="button" class="botao desfazer" data-variante="secundario" hidden>Desfazer</button>
+    </div>
+
+    <section class="opcoes" aria-labelledby="titulo-opcoes">
+      <h2 id="titulo-opcoes">Opções da setlist</h2>
+      <div class="opcoes-botoes">
+        <button type="button" class="botao abrir-renomear" data-variante="secundario">Renomear</button>
+        <button type="button" class="botao abrir-excluir" data-variante="perigo">Excluir setlist</button>
+      </div>
+    </section>
+  </div>
+
+  <template class="catalogo">
+    {
+      canticos.map((c) => (
+        <li data-id={c.id} data-titulo={c.titulo}>
+          <div class="item">
+            <span class="posicao" aria-hidden="true" />
+            <span class="texto">
+              <a class="titulo" href={`/canticos/${c.id}/`}>
+                {c.titulo}
+              </a>
+              <span class="tom">{rotuloTom(c.tom)}</span>
+            </span>
+            <span class="setas">
+              <button type="button" class="botao subir" data-variante="secundario">
+                <span aria-hidden="true">↑</span>
+                <span class="visualmente-oculto">Subir {c.titulo}</span>
+              </button>
+              <button type="button" class="botao descer" data-variante="secundario">
+                <span aria-hidden="true">↓</span>
+                <span class="visualmente-oculto">Descer {c.titulo}</span>
+              </button>
+            </span>
+          </div>
+          <button type="button" class="tirar">
+            Tirar da setlist<span class="visualmente-oculto">: {c.titulo}</span>
+          </button>
+        </li>
+      ))
+    }
+  </template>
+
+  <dialog class="tela tela-renomear" aria-labelledby="titulo-renomear">
+    <form class="formulario" novalidate>
+      <div class="tela-corpo">
+        <div class="tela-cabecalho">
+          <button type="button" class="botao voltar-renomear" data-variante="secundario">← Voltar</button>
+        </div>
+        <h2 id="titulo-renomear">Renomear setlist</h2>
+        <div class="campo">
+          <label for="nome-setlist">Nome da setlist</label>
+          <input
+            id="nome-setlist"
+            name="nome"
+            type="text"
+            maxlength={NOME_MAX}
+            autocomplete="off"
+            enterkeyhint="done"
+            aria-describedby="erro-nome"
+          />
+          <p id="erro-nome" class="erro"></p>
+        </div>
+      </div>
+      <div class="tela-rodape">
+        <button type="submit" class="botao" data-variante="primario">Salvar nome</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="tela tela-excluir" aria-labelledby="titulo-excluir" aria-describedby="texto-excluir">
+    <div class="tela-corpo">
+      <h2 id="titulo-excluir" class="pergunta-excluir"></h2>
+      <p id="texto-excluir">Os cânticos continuam no app. Só esta setlist é apagada, e não dá para desfazer.</p>
+      <div class="opcoes-botoes">
+        <button type="button" class="botao cancelar-excluir" data-variante="secundario">Cancelar</button>
+        <button type="button" class="botao confirmar-excluir" data-variante="perigo">Excluir</button>
+      </div>
+    </div>
+  </dialog>
+
+  <a slot="rodape" class="botao abrir-primeiro" data-variante="primario" href="/setlists/" hidden>
+    Abrir o primeiro cântico
+  </a>
+</Base>
+
+<script>
+  import {
+    avisoPosicao,
+    descer,
+    erroDoNome,
+    excluirSetlist,
+    limparNome,
+    removerCantico,
+    renomearSetlist,
+    rotuloQuantidade,
+    semAusentes,
+    subir,
+    type Setlist,
+  } from '../../lib/setlists';
+  import { CHAVE_SETLISTS, carregarSetlists, guardarSetlists } from '../../scripts/setlists';
+
+  const q = <T extends Element>(seletor: string) => document.querySelector<T>(seletor)!;
+  const detalhe = q<HTMLElement>('.detalhe');
+  const naoEncontrada = q<HTMLElement>('.nao-encontrada');
+  const nome = q<HTMLElement>('.nome');
+  const quantidade = q<HTMLElement>('.quantidade');
+  const vazio = q<HTMLElement>('.vazio');
+  const ol = q<HTMLOListElement>('.lista');
+  const aviso = q<HTMLElement>('.aviso');
+  const desfazer = q<HTMLButtonElement>('.desfazer');
+  const abrirPrimeiro = q<HTMLAnchorElement>('.abrir-primeiro');
+  const telaRenomear = q<HTMLDialogElement>('.tela-renomear');
+  const form = q<HTMLFormElement>('.formulario');
+  const campo = q<HTMLInputElement>('#nome-setlist');
+  const erro = q<HTMLElement>('#erro-nome');
+  const telaExcluir = q<HTMLDialogElement>('.tela-excluir');
+
+  const modelos = new Map(
+    [...q<HTMLTemplateElement>('.catalogo').content.querySelectorAll<HTMLLIElement>('li')].map((li) => [
+      li.dataset['id'] ?? '',
+      li,
+    ]),
+  );
+  const tituloDe = (cantico: string) => modelos.get(cantico)?.dataset['titulo'] ?? cantico;
+
+  const id = new URLSearchParams(location.search).get('id') ?? '';
+  let todas: Setlist[] = carregarSetlists();
+  let antesDeTirar: Setlist[] | undefined;
+
+  /** Guarda e devolve o aviso extra quando o navegador não deixa guardar. */
+  const salvar = () =>
+    guardarSetlists(todas) ? '' : ' Este navegador não deixou guardar: a mudança some ao fechar a página.';
+
+  const avisar = (texto: string, comDesfazer = false) => {
+    aviso.textContent = texto;
+    desfazer.hidden = !comDesfazer;
+  };
+
+  const mostrar = () => {
+    let setlist = todas.find((s) => s.id === id);
+    detalhe.hidden = !setlist;
+    naoEncontrada.hidden = !!setlist;
+    abrirPrimeiro.hidden = true;
+    if (!setlist) {
+      document.title = 'Setlist não encontrada · Cânticos';
+      return;
+    }
+
+    // Cântico que saiu do app sai também da setlist.
+    const limpa = semAusentes(setlist, new Set(modelos.keys()));
+    if (limpa.canticos.length !== setlist.canticos.length) {
+      todas = todas.map((s) => (s.id === id ? limpa : s));
+      salvar();
+      setlist = limpa;
+    }
+
+    nome.textContent = setlist.nome;
+    document.title = `${setlist.nome} · Cânticos`;
+    const { canticos } = setlist;
+    quantidade.textContent = rotuloQuantidade(canticos.length);
+    vazio.hidden = canticos.length > 0;
+    ol.hidden = canticos.length === 0;
+
+    // Os itens vêm de um <template> da página, então recebem o CSS dela.
+    ol.replaceChildren(
+      ...canticos.map((cantico, i) => {
+        const li = modelos.get(cantico)!.cloneNode(true) as HTMLLIElement;
+        li.querySelector('.posicao')!.textContent = String(i + 1);
+        li.querySelector<HTMLButtonElement>('.subir')!.disabled = i === 0;
+        li.querySelector<HTMLButtonElement>('.descer')!.disabled = i === canticos.length - 1;
+        li.querySelector<HTMLElement>('.setas')!.hidden = canticos.length < 2; // um só: nada a ordenar
+        return li;
+      }),
+    );
+
+    const primeiro = canticos[0];
+    if (primeiro) {
+      abrirPrimeiro.href = `/canticos/${primeiro}/`;
+      abrirPrimeiro.hidden = false;
+    }
+  };
+
+  /** Depois de redesenhar, o foco volta ao mesmo botão (ou ao vizinho, se ele ficou desativado). */
+  const focarNoItem = (cantico: string, preferido: string, reserva: string) => {
+    const li = ol.querySelector<HTMLLIElement>(`li[data-id="${CSS.escape(cantico)}"]`);
+    const botao = li?.querySelector<HTMLButtonElement>(preferido);
+    (botao && !botao.disabled ? botao : li?.querySelector<HTMLButtonElement>(reserva))?.focus();
+  };
+
+  ol.addEventListener('click', (evento) => {
+    const botao = (evento.target as Element).closest('button');
+    const cantico = botao?.closest('li')?.dataset['id'];
+    if (!botao || !cantico) return;
+
+    if (botao.classList.contains('tirar')) {
+      antesDeTirar = todas;
+      todas = removerCantico(todas, id, cantico);
+      const extra = salvar();
+      mostrar();
+      avisar(`“${tituloDe(cantico)}” saiu da setlist.${extra}`, true);
+      desfazer.focus();
+      return;
+    }
+
+    const sobe = botao.classList.contains('subir');
+    if (!sobe && !botao.classList.contains('descer')) return;
+    todas = (sobe ? subir : descer)(todas, id, cantico);
+    const extra = salvar();
+    mostrar();
+    const lista = todas.find((s) => s.id === id)?.canticos ?? [];
+    avisar(avisoPosicao(tituloDe(cantico), lista.indexOf(cantico) + 1, lista.length) + extra);
+    focarNoItem(cantico, sobe ? '.subir' : '.descer', sobe ? '.descer' : '.subir');
+  });
+
+  desfazer.addEventListener('click', () => {
+    if (!antesDeTirar) return;
+    const voltou = todas.find((s) => s.id === id)?.canticos ?? [];
+    todas = antesDeTirar;
+    antesDeTirar = undefined;
+    const extra = salvar();
+    mostrar();
+    const cantico = todas.find((s) => s.id === id)?.canticos.find((c) => !voltou.includes(c));
+    avisar(cantico ? `“${tituloDe(cantico)}” voltou para a setlist.${extra}` : '');
+    if (cantico) focarNoItem(cantico, '.tirar', '.tirar');
+  });
+
+  // Renomear
+  const mostrarErro = (mensagem: string) => {
+    erro.textContent = mensagem;
+    campo.setAttribute('aria-invalid', String(mensagem !== ''));
+  };
+  q('.abrir-renomear').addEventListener('click', () => {
+    campo.value = nome.textContent ?? '';
+    mostrarErro('');
+    telaRenomear.showModal();
+    campo.focus();
+  });
+  q('.voltar-renomear').addEventListener('click', () => telaRenomear.close());
+  campo.addEventListener('input', () => {
+    if (erro.textContent) mostrarErro('');
+  });
+  form.addEventListener('submit', (evento) => {
+    evento.preventDefault();
+    const problema = erroDoNome(campo.value);
+    if (problema) {
+      mostrarErro(problema);
+      campo.focus();
+      return;
+    }
+    todas = renomearSetlist(todas, id, campo.value);
+    const extra = salvar();
+    mostrar();
+    telaRenomear.close();
+    avisar(`Nome trocado para “${limparNome(campo.value)}”.${extra}`);
+  });
+
+  // Excluir (pede confirmação; depois volta para a lista de setlists)
+  q('.abrir-excluir').addEventListener('click', () => {
+    q('.pergunta-excluir').textContent = `Excluir a setlist “${nome.textContent}”?`;
+    telaExcluir.showModal();
+    q<HTMLButtonElement>('.cancelar-excluir').focus();
+  });
+  q('.cancelar-excluir').addEventListener('click', () => telaExcluir.close());
+  q('.confirmar-excluir').addEventListener('click', () => {
+    todas = excluirSetlist(todas, id);
+    salvar();
+    location.replace('/setlists/');
+  });
+
+  // Mudou em outra aba, ou a pessoa voltou para cá pelo botão "voltar" do celular.
+  const recarregar = () => {
+    todas = carregarSetlists();
+    antesDeTirar = undefined;
+    avisar('');
+    mostrar();
+  };
+  window.addEventListener('storage', (evento) => {
+    if (evento.key === CHAVE_SETLISTS || evento.key === null) recarregar();
+  });
+  window.addEventListener('pageshow', (evento) => {
+    if (evento.persisted) recarregar();
+  });
+
+  document.querySelector('.sem-js')?.remove();
+  mostrar();
+</script>
+
+<style>
+  .voltar {
+    margin-block: var(--espaco-4);
+  }
+
+  h1 {
+    font-size: var(--texto-titulo-grande);
+  }
+
+  .sem-js,
+  .quantidade,
+  .vazio,
+  .nao-encontrada p {
+    color: var(--cor-texto-secundario);
+  }
+
+  .detalhe {
+    display: grid;
+    gap: var(--espaco-3);
+  }
+
+  .detalhe[hidden],
+  .lista[hidden] {
+    display: none;
+  }
+
+  .nao-encontrada {
+    display: grid;
+    gap: var(--espaco-3);
+  }
+
+  .nao-encontrada[hidden] {
+    display: none;
+  }
+
+  .lista {
+    display: grid;
+    gap: var(--espaco-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .lista li {
+    padding: var(--espaco-3) var(--espaco-4);
+    border-radius: var(--raio);
+    background: var(--cor-superficie);
+  }
+
+  .item {
+    display: flex;
+    flex-wrap: wrap; /* com letra grande, as setas descem para baixo do título */
+    align-items: center;
+    gap: var(--espaco-2) var(--espaco-3);
+  }
+
+  .posicao {
+    flex: none;
+    min-width: 1.2em;
+    color: var(--cor-primaria);
+    font-size: var(--texto-titulo);
+    font-weight: var(--peso-forte);
+    text-align: center;
+  }
+
+  .texto {
+    flex: 1 1 7em;
+    display: grid;
+    min-width: 0;
+  }
+
+  .titulo {
+    color: var(--cor-texto);
+    font-weight: var(--peso-forte);
+    line-height: var(--entrelinha-titulo);
+    text-decoration: none;
+  }
+
+  .titulo:hover {
+    text-decoration: underline;
+  }
+
+  .tom {
+    color: var(--cor-texto-secundario);
+  }
+
+  .setas {
+    flex: none;
+    display: flex;
+    gap: var(--espaco-2);
+    margin-left: auto;
+  }
+
+  .setas[hidden] {
+    display: none;
+  }
+
+  .setas .botao {
+    min-width: var(--alvo-toque);
+    padding: 0;
+    font-size: var(--texto-titulo);
+  }
+
+  .setas .botao:disabled {
+    border-color: var(--cor-borda);
+    color: var(--cor-borda);
+    cursor: default;
+  }
+
+  .tirar {
+    min-height: var(--alvo-toque);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--cor-primaria);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .aviso-area {
+    display: grid;
+    gap: var(--espaco-2);
+  }
+
+  .aviso-area:has(.aviso:empty) {
+    display: none;
+  }
+
+  .opcoes {
+    display: grid;
+    gap: var(--espaco-3);
+    margin-block: var(--espaco-5);
+    padding-top: var(--espaco-4);
+    border-top: var(--borda-largura) solid var(--cor-superficie);
+  }
+
+  .opcoes h2 {
+    font-size: var(--texto-corpo);
+  }
+
+  .opcoes-botoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espaco-3);
+  }
+
+  .opcoes-botoes .botao {
+    flex: 1 1 8em;
+  }
+
+  .formulario {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .campo {
+    display: grid;
+    gap: var(--espaco-2);
+  }
+
+  .campo label {
+    font-weight: var(--peso-forte);
+  }
+
+  .campo input {
+    width: 100%;
+    min-height: var(--alvo-toque);
+    padding: var(--espaco-2) var(--espaco-4);
+    border: var(--borda-largura) solid var(--cor-primaria);
+    border-radius: var(--raio);
+    background: var(--cor-fundo);
+    font-size: var(--texto-corpo);
+  }
+
+  .campo input[aria-invalid='true'] {
+    border-color: var(--cor-acorde);
+  }
+
+  .erro {
+    color: var(--cor-acorde);
+    font-weight: var(--peso-forte);
+  }
+
+  .erro:empty {
+    display: none;
+  }
+</style>

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   NOME_MAX,
   adicionarCantico,
+  avisoPosicao,
   criarSetlist,
   descer,
   erroDoNome,
@@ -135,6 +136,12 @@ describe('quantidade, como no protótipo', () => {
     expect(rotuloQuantidade(0)).toBe('Nenhum cântico');
     expect(rotuloQuantidade(1)).toBe('1 cântico');
     expect(rotuloQuantidade(4)).toBe('4 cânticos');
+  });
+});
+
+describe('avisos para o leitor de tela', () => {
+  it('diz onde o cântico ficou depois de mudar de lugar', () => {
+    expect(avisoPosicao('Paz no Caminho', 1, 4)).toBe('“Paz no Caminho” agora é o 1º de 4.');
   });
 });
 

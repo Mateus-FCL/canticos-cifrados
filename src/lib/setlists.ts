@@ -28,6 +28,11 @@ export function rotuloQuantidade(total: number): string {
   return total === 1 ? '1 cântico' : `${total} cânticos`;
 }
 
+/** Anunciado depois de subir ou descer, para quem não vê a lista se mexer. */
+export function avisoPosicao(titulo: string, posicao: number, total: number): string {
+  return `“${titulo}” agora é o ${posicao}º de ${total}.`;
+}
+
 /** Troca uma setlist por outra; se a função não mudar nada, devolve a lista como estava. */
 function alterar(lista: Setlist[], id: string, mudar: (s: Setlist) => Setlist): Setlist[] {
   const i = lista.findIndex((s) => s.id === id);
