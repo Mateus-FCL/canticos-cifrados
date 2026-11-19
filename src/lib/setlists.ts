@@ -146,6 +146,16 @@ export function vizinhos(setlist: Setlist, cantico: string): Vizinhos | undefine
   };
 }
 
+/** Link do cântico aberto pela setlist: a página do cântico usa ?setlist= para mostrar Anterior/Próximo. */
+export function linkNaSetlist(cantico: string, setlist: string): string {
+  return `/canticos/${cantico}/?setlist=${encodeURIComponent(setlist)}`;
+}
+
+/** "Culto de domingo · 2 de 4", na barra de navegação do cântico. */
+export function rotuloNavegacao(nome: string, { posicao, total }: Pick<Vizinhos, 'posicao' | 'total'>): string {
+  return `${nome} · ${posicao} de ${total}`;
+}
+
 /** Tira os cânticos que não existem mais no app (ex.: arquivo removido). */
 export function semAusentes(setlist: Setlist, existentes: ReadonlySet<string>): Setlist {
   return { ...setlist, canticos: setlist.canticos.filter((c) => existentes.has(c)) };
