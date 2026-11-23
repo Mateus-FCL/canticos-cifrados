@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Ícone do Cânticos Cifrados: duas notas ligadas, em branco sobre o azul do app. -->
+  <rect width="512" height="512" rx="112" fill="#1b3a5c"/>
+  <g fill="#ffffff" transform="translate(-8 12)">
+    <path d="M212 142 L385 110 L385 156 L212 188 Z"/>
+    <rect x="212" y="150" width="22" height="200"/>
+    <rect x="363" y="120" width="22" height="200"/>
+    <ellipse cx="190" cy="350" rx="50" ry="37" transform="rotate(-20 190 350)"/>
+    <ellipse cx="341" cy="320" rx="50" ry="37" transform="rotate(-20 341 320)"/>
+  </g>
+</svg>

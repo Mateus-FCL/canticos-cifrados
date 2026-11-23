@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm run indice:dev && astro dev",
-    "indice:dev": "astro build && pagefind --site dist --output-path public/pagefind",
+    "indice:dev": "node -e \"require('node:fs').rmSync('public/pagefind',{recursive:true,force:true})\" && astro build && pagefind --site dist --output-path public/pagefind",
     "build": "astro check && astro build && pagefind --site dist",
     "preview": "astro preview",
     "test": "vitest run",
