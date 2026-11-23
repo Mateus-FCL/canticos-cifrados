@@ -4,6 +4,7 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import { lerChordpro } from '../../lib/chordpro';
 import { palavrasDaLinha, soAcordes } from '../../lib/palavras';
+import { batidasDaLinha, rotuloAndamento, temposPorCompasso } from '../../lib/rolagem';
 import { rotuloBotaoTom } from '../../lib/rotulos';
 import { NOME_MAX } from '../../lib/setlists';
 
@@ -21,6 +22,8 @@ const { numero, titulo, versoes } = cantico.data;
 // Por enquanto mostra a primeira versão; escolher entre versões fica para depois.
 const versao = versoes[0];
 const secoes = versao ? lerChordpro(versao.chordpro) : [];
+// Mapa de batidas da autorolagem: quanto tempo cada linha dura (ver lib/rolagem).
+const tempos = temposPorCompasso(versao?.compasso ?? '4/4');
 const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
 ---
 
@@ -28,6 +31,7 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
   <a class="botao voltar" data-variante="secundario" href="/">← Voltar</a>
 
   <h1>{tituloCompleto}</h1>
+  {versao && <p class="andamento">{rotuloAndamento(versao.compasso, versao.bpm)}</p>}
 
   <!-- Tom e tamanho precisam de JavaScript; sem ele, os botões não aparecem. -->
   <div class="acoes">
@@ -38,6 +42,7 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
     <button type="button" class="botao abrir-setlists" data-variante="secundario" hidden>
       Adicionar à setlist
     </button>
+    <button type="button" class="botao abrir-rolagem" data-variante="secundario" hidden>▶ Rolar a letra</button>
   </div>
   <p class="aviso-setlist" role="status" aria-live="polite"></p>
 
@@ -53,6 +58,7 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
     data-modo="cifra"
     data-id={cantico.id}
     data-tom={versao?.tom}
+    data-bpm={versao?.bpm}
     data-pagefind-body
     data-titulo={titulo}
     data-numero={numero}
@@ -63,7 +69,11 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
         <section class:list={['secao', { refrao: secao.refrao }]}>
           {secao.titulo && <h2 class="titulo-secao" data-pagefind-ignore>{secao.titulo}</h2>}
           {secao.linhas.map((linha) => (
-            <p class="linha" data-so-acordes={soAcordes(linha) ? '' : undefined}>
+            <p
+              class="linha"
+              data-so-acordes={soAcordes(linha) ? '' : undefined}
+              data-batidas={batidasDaLinha(linha, tempos)}
+            >
               {palavrasDaLinha(linha).map((palavra) => (
                 <>
                   <span class="palavra">
@@ -185,6 +195,24 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
     </div>
   </dialog>
 
+  <!-- Autorolagem: aparece ao tocar em "Rolar a letra". -->
+  <div slot="rodape" class="barra-rolagem" role="group" aria-label="Rolagem da letra" data-sempre-visivel hidden>
+    <div class="topo-rolagem">
+      <p class="estado-rolagem" role="status" aria-live="polite"></p>
+      <button type="button" class="fechar-rolagem">Parar ✕</button>
+    </div>
+    <p class="detalhe-rolagem"></p>
+    <button type="button" class="botao mais-devagar" data-variante="secundario">
+      <span aria-hidden="true">−</span><span class="palavra-rolagem"> Devagar</span>
+    </button>
+    <button type="button" class="botao pausar-rolagem" data-variante="primario">
+      <span class="icone-rolagem" aria-hidden="true">⏸</span><span class="palavra-rolagem"> Pausar</span>
+    </button>
+    <button type="button" class="botao mais-rapido" data-variante="secundario">
+      <span aria-hidden="true">+</span><span class="palavra-rolagem"> Rápido</span>
+    </button>
+  </div>
+
   <!-- Só aparece quando o cântico foi aberto por uma setlist. -->
   <nav slot="rodape" class="nav-setlist" aria-label="Cânticos da setlist" hidden>
     <p class="nav-posicao"></p>
@@ -209,6 +237,7 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
 <script>
   import { iniciarAdicionarASetlist } from '../../scripts/adicionar-setlist';
   import { iniciarNavegacaoNaSetlist } from '../../scripts/navegar-setlist';
+  import { iniciarRolagem } from '../../scripts/rolagem';
   import { iniciarTamanho } from '../../scripts/tamanho';
   import { iniciarTrocaDeTom } from '../../scripts/tom';
 
@@ -216,6 +245,7 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
   iniciarTrocaDeTom();
   iniciarAdicionarASetlist();
   iniciarNavegacaoNaSetlist();
+  iniciarRolagem();
 
   // Letra e cifra / Só letra. A escolha fica guardada neste aparelho.
   const CHAVE = 'canticos:modo';
@@ -280,6 +310,91 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
     flex-wrap: wrap;
     gap: var(--espaco-3);
     margin-bottom: var(--espaco-4);
+  }
+
+  .andamento {
+    margin-top: calc(-1 * var(--espaco-3));
+    margin-bottom: var(--espaco-4);
+    color: var(--cor-texto-secundario);
+  }
+
+  /* Barra da autorolagem: estado em cima, três botões grandes embaixo. */
+  .barra-rolagem {
+    flex-wrap: wrap;
+    gap: var(--espaco-2);
+  }
+
+  .topo-rolagem,
+  .detalhe-rolagem {
+    flex: 1 0 100%;
+  }
+
+  .topo-rolagem {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--espaco-2);
+  }
+
+  .estado-rolagem {
+    font-weight: var(--peso-forte);
+  }
+
+  .detalhe-rolagem {
+    color: var(--cor-texto-secundario);
+  }
+
+  .fechar-rolagem {
+    min-height: var(--alvo-toque);
+    padding: 0 var(--espaco-2);
+    border: 0;
+    background: none;
+    color: var(--cor-primaria);
+    font-weight: var(--peso-forte);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  /* Os três sempre lado a lado; com pouco espaço, o símbolo fica em cima da palavra. */
+  .barra-rolagem .botao {
+    flex: 1 1 0;
+    flex-wrap: wrap;
+    column-gap: 0.3em;
+    min-width: 0;
+    padding-inline: var(--espaco-2);
+  }
+
+  .barra-rolagem .botao:disabled {
+    border-color: var(--cor-borda);
+    color: var(--cor-borda);
+    cursor: default;
+  }
+
+  /* Letra grande (tela "baixa"): enquanto rola, só os três botões, com os símbolos.
+     As palavras continuam para o leitor de tela. Pausado, o texto e o "Parar" voltam. */
+  @media (max-height: 40em) {
+    .palavra-rolagem {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+
+    .barra-rolagem:not([data-pausado]) .fechar-rolagem,
+    .detalhe-rolagem {
+      display: none;
+    }
+
+    /* Escondido só da vista: o leitor de tela continua anunciando o estado. */
+    .barra-rolagem:not([data-pausado]) .topo-rolagem {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
   }
 
   /* Barra de baixo quando o cântico vem de uma setlist: posição em cima, botões embaixo. */

@@ -134,11 +134,30 @@ const abas = [
     .rodape {
       position: static;
     }
+
+    /* Exceção: controles que a pessoa precisa alcançar a qualquer momento
+       (ex.: Pausar a autorolagem) continuam fixos, mesmo com letra grande. */
+    .rodape:has(> :global([data-sempre-visivel]:not([hidden]))) {
+      position: sticky;
+    }
+
+    /* Para sobrar tela, só eles aparecem enquanto estão abertos. */
+    .rodape:has(> :global([data-sempre-visivel]:not([hidden]))) > :global(:not([data-sempre-visivel])) {
+      display: none;
+    }
   }
 
-  /* O botão do rodapé escondido (ex.: setlist vazia) leva a barra junto. */
-  .rodape:has(> :global([hidden])) {
+  /* Rodapé sem nada visível (ex.: setlist vazia, rolagem fechada) some junto. */
+  .rodape:not(:has(> :global(:not([hidden])))) {
     display: none;
+  }
+
+  .rodape > :global([hidden]) {
+    display: none;
+  }
+
+  .rodape > :global(:not([hidden]) ~ :not([hidden])) {
+    margin-top: var(--espaco-3);
   }
 
   .rodape > :global(*) {
