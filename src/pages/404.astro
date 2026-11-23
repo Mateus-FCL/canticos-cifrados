@@ -1,0 +1,24 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base titulo="Página não encontrada" aba="canticos">
+  <h1>Página não encontrada</h1>
+  <p class="explica">Este endereço não existe no app. Pode ter sido digitado errado, ou o cântico saiu do app.</p>
+  <a class="botao" data-variante="primario" href="/">Ver a lista de cânticos</a>
+</Base>
+
+<style>
+  h1 {
+    margin-block: var(--espaco-5) var(--espaco-4);
+  }
+
+  .explica {
+    margin-bottom: var(--espaco-5);
+    color: var(--cor-texto-secundario);
+  }
+
+  .botao {
+    display: flex;
+  }
+</style>
