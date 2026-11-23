@@ -10,6 +10,16 @@ const itens = itensDaLista(await getCollection('canticos'));
 <Base titulo="Cânticos" aba="canticos">
   <h1>Cânticos</h1>
 
+  <!-- Só aparece quando o navegador avisa que dá para instalar. -->
+  <section class="instalar" aria-labelledby="titulo-instalar" hidden>
+    <h2 id="titulo-instalar">Usar como app</h2>
+    <p>Coloque o Cânticos na tela inicial do celular: abre mais rápido e em tela cheia.</p>
+    <div class="instalar-botoes">
+      <button type="button" class="botao instalar-sim" data-variante="primario">Instalar o app</button>
+      <button type="button" class="botao instalar-nao" data-variante="secundario">Agora não</button>
+    </div>
+  </section>
+
   <!-- A busca só aparece com JavaScript; sem ele, a lista inteira continua acessível. -->
   <form class="busca" role="search" hidden>
     <label for="busca" class="visualmente-oculto">Buscar cântico</label>
@@ -78,6 +88,9 @@ const itens = itensDaLista(await getCollection('canticos'));
 <script>
   import { avisoDaBusca, deveBuscarNaLetra, idDaUrl, partesDoTrecho } from '../lib/busca';
   import { corresponde } from '../lib/lista';
+  import { iniciarConviteInstalar } from '../scripts/instalar';
+
+  iniciarConviteInstalar();
 
   interface ResultadoPagefind {
     url: string;
@@ -291,6 +304,29 @@ const itens = itensDaLista(await getCollection('canticos'));
 
   .tom {
     color: var(--cor-texto-secundario);
+  }
+
+  .instalar {
+    display: grid;
+    gap: var(--espaco-3);
+    margin-bottom: var(--espaco-4);
+    padding: var(--espaco-4);
+    border: var(--borda-largura) solid var(--cor-primaria);
+    border-radius: var(--raio);
+  }
+
+  .instalar[hidden] {
+    display: none;
+  }
+
+  .instalar-botoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espaco-3);
+  }
+
+  .instalar-botoes .botao {
+    flex: 1 1 8em;
   }
 
   .na-letra {
