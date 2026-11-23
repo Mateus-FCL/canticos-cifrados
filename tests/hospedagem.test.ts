@@ -45,6 +45,10 @@ describe('configuração da Cloudflare (wrangler.jsonc)', () => {
   it('endereço errado mostra a página 404', () => {
     expect(config.assets.not_found_handling).toBe('404-page');
   });
+
+  it('permite o endereço de teste de cada branch ("npx wrangler preview" exige o bloco previews)', () => {
+    expect(config).toHaveProperty('previews');
+  });
 });
 
 describe('página de endereço errado', () => {

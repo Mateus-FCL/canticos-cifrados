@@ -27,7 +27,7 @@ A configuração está em `wrangler.jsonc`.
    | Project name | `canticos-cifrados` (**só o nome**: letras minúsculas, números e traços) |
    | Build command | `pnpm build` |
    | Deploy command | `npx wrangler deploy` (já vem preenchido) |
-   | Preview command | `npx wrangler versions upload` (ou o que vier preenchido) |
+   | Preview command | `npx wrangler preview` (já vem preenchido; usa o bloco `previews` do `wrangler.jsonc`) |
 
 4. Clique em **Deploy**.
 5. Abra o projeto → **Settings** → **Build**:
