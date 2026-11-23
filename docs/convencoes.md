@@ -14,7 +14,8 @@ Escopo em `docs/spec.md`.
 - **Pagefind** para busca, índice gerado no build.
 - **PWA** com manifesto e service worker próprios (`public/sw.js`, regras testadas em
   `public/sw-regras.js`). Sem biblioteca: são poucas regras e ficam fáceis de ler.
-- **Hospedagem na Cloudflare Pages**, site estático, sem servidor. Passo a passo em
+- **Hospedagem na Cloudflare** (Workers com arquivos estáticos, config em `wrangler.jsonc`),
+  site estático, sem servidor. Passo a passo em
   [hospedagem.md](hospedagem.md). PRs conferidos pelo GitHub Actions (testes e build).
 
 ## Regras que não mudam

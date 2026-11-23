@@ -1,0 +1,11 @@
+// Hospedagem na Cloudflare (Workers com arquivos estáticos). Passo a passo em docs/hospedagem.md.
+// O app é só arquivos: o "pnpm build" gera tudo em dist/ e a Cloudflare serve essa pasta.
+{
+  "name": "canticos-cifrados",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist",
+    // Endereço que não existe mostra dist/404.html (e não a lista de cânticos).
+    "not_found_handling": "404-page"
+  }
+}

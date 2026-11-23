@@ -29,6 +29,24 @@ describe('regras da hospedagem (public/_headers)', () => {
   });
 });
 
+describe('configuração da Cloudflare (wrangler.jsonc)', () => {
+  // JSON com comentários: tira as linhas que começam com // antes de ler.
+  const texto = readFileSync(raiz('wrangler.jsonc'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
+  const config = JSON.parse(texto) as {
+    name: string;
+    assets: { directory: string; not_found_handling: string };
+  };
+
+  it('serve a pasta que o build gera', () => {
+    expect(config.name).toBe('canticos-cifrados');
+    expect(config.assets.directory).toBe('./dist');
+  });
+
+  it('endereço errado mostra a página 404', () => {
+    expect(config.assets.not_found_handling).toBe('404-page');
+  });
+});
+
 describe('página de endereço errado', () => {
   it('existe (sem ela, a hospedagem mostraria a lista para qualquer endereço)', () => {
     expect(existsSync(raiz('src/pages/404.astro'))).toBe(true);
