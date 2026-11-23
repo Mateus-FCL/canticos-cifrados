@@ -12,8 +12,10 @@ Escopo em `docs/spec.md`.
 - **Vitest**, com teste antes do código no parser, na transposição e na rolagem.
 - **CSS próprio** com variáveis. Sem framework de CSS.
 - **Pagefind** para busca, índice gerado no build.
-- **PWA** com @vite-pwa/astro.
-- Hospedagem a definir no ADR-0002. Até lá, nada de servidor.
+- **PWA** com manifesto e service worker próprios (`public/sw.js`, regras testadas em
+  `public/sw-regras.js`). Sem biblioteca: são poucas regras e ficam fáceis de ler.
+- **Hospedagem na Cloudflare Pages**, site estático, sem servidor. Passo a passo em
+  [hospedagem.md](hospedagem.md). PRs conferidos pelo GitHub Actions (testes e build).
 
 ## Regras que não mudam
 

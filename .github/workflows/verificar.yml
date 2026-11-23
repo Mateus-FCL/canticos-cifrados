@@ -1,0 +1,25 @@
+# Confere cada PR antes do merge: testes, tipos e build (o build também valida os cânticos).
+# A publicação do site fica com a Cloudflare, que faz o próprio build a cada envio ao GitHub.
+name: Verificar
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # usa a versão do "packageManager" do package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm build
