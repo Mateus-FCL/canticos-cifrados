@@ -272,6 +272,11 @@ const canticos = itensDaLista(await getCollection('canticos'));
       }),
     );
 
+    // Guarda os cânticos da setlist no aparelho, para o culto funcionar sem internet.
+    void navigator.serviceWorker?.ready.then((registro) =>
+      registro.active?.postMessage({ tipo: 'guardar-paginas', caminhos: canticos.map((c) => `/canticos/${c}/`) }),
+    );
+
     const primeiro = canticos[0];
     if (primeiro) {
       abrirPrimeiro.href = linkNaSetlist(primeiro, id);

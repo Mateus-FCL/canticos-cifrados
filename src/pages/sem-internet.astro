@@ -1,0 +1,87 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+
+// O service worker mostra esta tela no lugar de uma página que nunca foi aberta no aparelho.
+// O endereço continua o da página pedida; com ele, a tela descobre o nome do cântico.
+const titulos = (await getCollection('canticos')).map((c) => ({ id: c.id, titulo: c.data.titulo }));
+---
+
+<Base titulo="Sem internet" avisoSemInternet={false}>
+  <p class="aviso">Sem internet. Os cânticos que você já abriu continuam disponíveis.</p>
+
+  <h1>Sem internet</h1>
+
+  <div class="cartao">
+    <p class="motivo">Esta página ainda não foi aberta neste aparelho.</p>
+    <p class="dica">Conecte-se à internet para abri-la.</p>
+  </div>
+
+  <div class="botoes">
+    <button type="button" class="botao tentar" data-variante="primario" hidden>Tentar de novo</button>
+    <a class="botao" data-variante="secundario" href="/">Voltar à lista</a>
+  </div>
+
+  <template class="titulos">
+    {titulos.map((c) => <span data-id={c.id}>{c.titulo}</span>)}
+  </template>
+</Base>
+
+<script>
+  import { idDaUrl } from '../lib/busca';
+
+  const id = idDaUrl(location.pathname);
+  const titulo = id
+    ? document
+        .querySelector<HTMLTemplateElement>('.titulos')
+        ?.content.querySelector(`[data-id="${CSS.escape(id)}"]`)?.textContent
+    : undefined;
+
+  if (titulo) {
+    document.querySelector('h1')!.textContent = titulo;
+    document.querySelector('.motivo')!.textContent = 'Este cântico ainda não foi aberto neste aparelho.';
+    document.querySelector('.dica')!.textContent = 'Conecte-se à internet para abri-lo.';
+    document.title = `${titulo} · Cânticos`;
+  }
+
+  const tentar = document.querySelector<HTMLButtonElement>('.tentar')!;
+  tentar.hidden = false;
+  tentar.addEventListener('click', () => location.reload());
+</script>
+
+<style>
+  .aviso {
+    margin-block: var(--espaco-4);
+    padding: var(--espaco-3) var(--espaco-4);
+    border: var(--borda-largura) solid var(--cor-borda);
+    border-radius: var(--raio);
+    background: var(--cor-aviso);
+  }
+
+  h1 {
+    margin-block: var(--espaco-4);
+    font-size: var(--texto-titulo-grande);
+  }
+
+  .cartao {
+    display: grid;
+    gap: var(--espaco-2);
+    margin-bottom: var(--espaco-4);
+    padding: var(--espaco-4);
+    border-radius: var(--raio);
+    background: var(--cor-superficie);
+  }
+
+  .motivo {
+    font-weight: var(--peso-forte);
+  }
+
+  .dica {
+    color: var(--cor-texto-secundario);
+  }
+
+  .botoes {
+    display: grid;
+    gap: var(--espaco-3);
+  }
+</style>

@@ -5,9 +5,11 @@ interface Props {
   titulo: string;
   /** Aba marcada na barra inferior. Sem ela, a barra não aparece. */
   aba?: 'canticos' | 'setlists';
+  /** A tela Sem internet já mostra o aviso fixo; as outras mostram só quando a internet cai. */
+  avisoSemInternet?: boolean;
 }
 
-const { titulo, aba } = Astro.props;
+const { titulo, aba, avisoSemInternet = true } = Astro.props;
 
 const abas = [
   { id: 'canticos', rotulo: 'Cânticos', href: '/' },
@@ -32,6 +34,13 @@ const abas = [
   </head>
   <body>
     <main class="pagina">
+      {
+        avisoSemInternet && (
+          <p class="aviso-sem-internet" role="status" hidden>
+            Sem internet. Os cânticos que você já abriu continuam disponíveis.
+          </p>
+        )
+      }
       <slot />
     </main>
     {
@@ -64,7 +73,42 @@ const abas = [
   </body>
 </html>
 
+<script>
+  // Aviso amarelo quando a internet cai (e some quando ela volta).
+  const aviso = document.querySelector<HTMLElement>('.aviso-sem-internet');
+  if (aviso) {
+    const atualizar = () => (aviso.hidden = navigator.onLine);
+    window.addEventListener('online', atualizar);
+    window.addEventListener('offline', atualizar);
+    atualizar();
+  }
+
+  // Guarda o app no aparelho para funcionar sem internet. Só no build final:
+  // no "pnpm dev" ele serviria páginas velhas enquanto você programa.
+  if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js', { type: 'module', updateViaCache: 'none' }).catch(() => {
+      // Navegador sem suporte: o app continua funcionando, só que precisa de internet.
+    });
+  } else if ('serviceWorker' in navigator) {
+    // No "pnpm dev", desliga o que um "pnpm preview" no mesmo endereço tenha deixado ligado.
+    void navigator.serviceWorker.getRegistrations().then((registros) => registros.forEach((r) => r.unregister()));
+  }
+</script>
+
 <style>
+  .aviso-sem-internet {
+    margin-bottom: var(--espaco-4);
+    padding: var(--espaco-3) var(--espaco-4);
+    border: var(--borda-largura) solid var(--cor-borda);
+    border-radius: var(--raio);
+    background: var(--cor-aviso);
+    color: var(--cor-texto);
+  }
+
+  .aviso-sem-internet[hidden] {
+    display: none;
+  }
+
   body {
     display: flex;
     flex-direction: column;
