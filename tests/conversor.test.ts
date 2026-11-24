@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { lerChordpro } from '../src/lib/chordpro';
-import { bpmDosToques, cifraParaTexto, converterCifra, ehLinhaDeAcordes, linkDeBusca } from '../src/lib/conversor';
+import { cifraParaTexto, converterCifra, ehLinhaDeAcordes, linkDeBusca } from '../src/lib/conversor';
 
 /** Junta linhas, para escrever as cifras de exemplo sem se perder nos espaços. */
 const texto = (...linhas: string[]) => linhas.join('\n');
@@ -128,29 +128,6 @@ describe('o caminho de volta (para corrigir um cântico que já está no app)', 
       '[G] [D] [Em] [C]',
     );
     expect(converterCifra(cifraParaTexto(original)).chordpro).toBe(original);
-  });
-});
-
-describe('"Toque no ritmo" (BPM pelos toques)', () => {
-  it('calcula pelo intervalo entre os toques', () => {
-    expect(bpmDosToques([0, 1000, 2000, 3000])).toBe(60);
-    expect(bpmDosToques([0, 500, 1000, 1500, 2000])).toBe(120);
-  });
-
-  it('um toque fora do ritmo não estraga a conta', () => {
-    expect(bpmDosToques([0, 500, 1000, 1700, 2200, 2700])).toBe(120);
-  });
-
-  it('precisa de pelo menos 3 toques', () => {
-    expect(bpmDosToques([0, 500])).toBeUndefined();
-  });
-
-  it('uma pausa longa recomeça a contagem', () => {
-    expect(bpmDosToques([0, 500, 1000, 9000, 10000, 11000, 12000])).toBe(60);
-  });
-
-  it('fica entre 30 e 300 BPM', () => {
-    expect(bpmDosToques([0, 100, 200, 300])).toBe(300);
   });
 });
 

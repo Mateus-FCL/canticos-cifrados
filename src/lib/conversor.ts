@@ -183,28 +183,6 @@ export function cifraParaTexto(chordpro: string): string {
   return blocos.join('\n\n');
 }
 
-/** Pausa maior que isso entre dois toques recomeça a contagem. */
-const PAUSA_MS = 2000;
-
-/** BPM pelos instantes (ms) em que a pessoa tocou no botão "Toque no ritmo". */
-export function bpmDosToques(instantes: readonly number[]): number | undefined {
-  let inicio = 0;
-  for (let i = 1; i < instantes.length; i++) {
-    if ((instantes[i] ?? 0) - (instantes[i - 1] ?? 0) > PAUSA_MS) inicio = i;
-  }
-  const usados = instantes.slice(inicio).slice(-8);
-  if (usados.length < 3) return undefined;
-  const intervalos = usados
-    .slice(1)
-    .map((t, i) => t - (usados[i] ?? 0))
-    .sort((a, b) => a - b);
-  const meio = Math.floor(intervalos.length / 2);
-  const mediana =
-    intervalos.length % 2 ? (intervalos[meio] ?? 0) : ((intervalos[meio - 1] ?? 0) + (intervalos[meio] ?? 0)) / 2;
-  if (mediana <= 0) return 300;
-  return Math.min(300, Math.max(30, Math.round(60000 / mediana)));
-}
-
 /** Busca da música no Cifra Club (pela busca do Google, que sempre funciona). */
 export function linkDeBusca(nome: string): string {
   const q = `${nome.trim()} cifra site:cifraclub.com.br`;

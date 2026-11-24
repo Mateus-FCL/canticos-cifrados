@@ -67,6 +67,12 @@ describe('canticoSchema', () => {
     }
   });
 
+  it('bpm pode ficar em branco (quem sugeriu não sabia)', () => {
+    const { bpm: _semBpm, ...semBpm } = versao;
+    const r = canticoSchema.safeParse({ ...cantico, versoes: [semBpm] });
+    expect(r.success).toBe(true);
+  });
+
   it('chordpro não pode ser vazio', () => {
     const r = canticoSchema.safeParse({ ...cantico, versoes: [{ ...versao, chordpro: '\n ' }] });
     expect(r.success).toBe(false);

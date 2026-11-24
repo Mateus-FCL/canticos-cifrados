@@ -8,6 +8,9 @@
  */
 import type { Linha } from './chordpro';
 
+/** Andamento usado na rolagem quando o cântico não tem BPM informado (a tela avisa). */
+export const BPM_PADRAO = 100;
+
 export const VELOCIDADE_MIN = 0.5;
 export const VELOCIDADE_MAX = 1.5;
 const COMPASSOS_SEM_ACORDE = 2;
@@ -97,6 +100,6 @@ export function rotuloVelocidade(velocidade: number): string {
   return `Velocidade ${Math.round(velocidade * 100)}%`;
 }
 
-export function rotuloAndamento(compasso: string, bpm: number): string {
-  return `${compasso} · ${bpm} BPM`;
+export function rotuloAndamento(compasso: string, bpm: number | undefined): string {
+  return bpm === undefined ? compasso : `${compasso} · ${bpm} BPM`;
 }

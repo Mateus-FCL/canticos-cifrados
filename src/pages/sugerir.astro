@@ -1,0 +1,384 @@
+---
+import Base from '../layouts/Base.astro';
+import { COMPASSOS, LIMITES, TONS } from '../lib/sugestao';
+---
+
+<Base titulo="Sugerir cântico">
+  <a class="botao voltar" data-variante="secundario" href="/">← Voltar</a>
+
+  <h1>Sugerir cântico</h1>
+  <p class="explica intro">
+    Mande um cântico novo para o app. Uma pessoa responsável confere antes de ele aparecer para todos.
+  </p>
+
+  <p class="sem-js">Para sugerir, o navegador precisa estar com o JavaScript ligado.</p>
+  <p class="erro-carregar" role="alert" hidden>
+    Não foi possível abrir o cântico para corrigir. Confira a internet e tente de novo.
+  </p>
+
+  <form id="form-sugestao" class="formulario-sugestao" novalidate hidden>
+    <div class="campo">
+      <label for="titulo">Nome da música</label>
+      <input
+        id="titulo"
+        name="titulo"
+        class="campo-texto"
+        type="text"
+        maxlength={LIMITES.titulo}
+        autocomplete="off"
+        aria-describedby="erro-titulo"
+      />
+      <p id="erro-titulo" class="mensagem-erro"></p>
+      <a class="botao procurar" data-variante="secundario" target="_blank" rel="noopener noreferrer" hidden>
+        Procurar a cifra no Cifra Club ↗
+      </a>
+    </div>
+
+    <div class="campo">
+      <label for="cifra">Cifra</label>
+      <p id="dica-cifra" class="dica">
+        No site, copie a cifra inteira (a letra com os acordes em cima) e cole aqui.
+      </p>
+      <textarea
+        id="cifra"
+        name="cifra"
+        class="campo-texto area-cifra"
+        rows="12"
+        maxlength={LIMITES.cifra}
+        spellcheck="false"
+        autocapitalize="off"
+        autocomplete="off"
+        wrap="off"
+        aria-describedby="dica-cifra erro-cifra"></textarea>
+      <p id="erro-cifra" class="mensagem-erro"></p>
+    </div>
+
+    <section class="previa-sugestao" aria-labelledby="titulo-previa" hidden>
+      <h2 id="titulo-previa">Prévia</h2>
+      <p class="dica">É assim que vai aparecer no app. Se um acorde ficou no lugar errado, arrume na caixa acima.</p>
+      <div class="desenho-cifra previa-cifra"></div>
+    </section>
+
+    <div class="lado-a-lado">
+      <div class="campo">
+        <label for="tom">Tom</label>
+        <select id="tom" name="tom" class="campo-texto" aria-describedby="erro-tom">
+          {TONS.map((tom) => <option value={tom}>{tom}</option>)}
+        </select>
+        <p id="erro-tom" class="mensagem-erro"></p>
+      </div>
+      <div class="campo">
+        <label for="compasso">Compasso</label>
+        <select id="compasso" name="compasso" class="campo-texto" aria-describedby="erro-compasso">
+          {COMPASSOS.map((c) => <option value={c}>{c}</option>)}
+        </select>
+        <p id="erro-compasso" class="mensagem-erro"></p>
+      </div>
+    </div>
+
+    <div class="campo">
+      <label for="bpm">BPM</label>
+      <p id="dica-bpm" class="dica">Batidas por minuto. Se não souber, deixe em branco.</p>
+      <input
+        id="bpm"
+        name="bpm"
+        class="campo-texto"
+        type="number"
+        inputmode="numeric"
+        min="30"
+        max="300"
+        placeholder="Ex.: 72"
+        aria-describedby="dica-bpm erro-bpm"
+      />
+      <p id="erro-bpm" class="mensagem-erro"></p>
+    </div>
+
+    <div class="campo so-correcao" hidden>
+      <label for="observacao">O que você corrigiu? (opcional)</label>
+      <textarea
+        id="observacao"
+        name="observacao"
+        class="campo-texto"
+        rows="3"
+        maxlength={LIMITES.observacao}
+        aria-describedby="erro-observacao"></textarea>
+      <p id="erro-observacao" class="mensagem-erro"></p>
+    </div>
+
+    <fieldset class="opcionais">
+      <legend>Sobre você (opcional)</legend>
+      <div class="campo">
+        <label for="nome">Seu nome</label>
+        <input id="nome" name="nome" class="campo-texto" type="text" maxlength={LIMITES.nome} autocomplete="name" />
+      </div>
+      <div class="campo">
+        <label for="contato">Telefone ou e-mail</label>
+        <p id="dica-contato" class="dica">Só se quiser que o responsável fale com você.</p>
+        <input
+          id="contato"
+          name="contato"
+          class="campo-texto"
+          type="text"
+          maxlength={LIMITES.contato}
+          autocomplete="email"
+          aria-describedby="dica-contato"
+        />
+      </div>
+    </fieldset>
+
+    <p class="aviso-envio" role="status" aria-live="polite"></p>
+  </form>
+
+  <button slot="rodape" type="submit" form="form-sugestao" class="botao enviar" data-variante="primario" hidden>
+    Enviar sugestão
+  </button>
+</Base>
+
+<script>
+  import { cifraParaTexto, converterCifra, linkDeBusca } from '../lib/conversor';
+  import { errosDaSugestao, type Sugestao } from '../lib/sugestao';
+  import { desenharCifra } from '../scripts/desenhar-cifra';
+
+  const q = <T extends Element>(seletor: string) => document.querySelector<T>(seletor)!;
+  const form = q<HTMLFormElement>('#form-sugestao');
+  const enviar = q<HTMLButtonElement>('.enviar');
+  const titulo = q<HTMLInputElement>('#titulo');
+  const procurar = q<HTMLAnchorElement>('.procurar');
+  const cifra = q<HTMLTextAreaElement>('#cifra');
+  const previa = q<HTMLElement>('.previa-sugestao');
+  const desenho = q<HTMLElement>('.previa-cifra');
+  const tom = q<HTMLSelectElement>('#tom');
+  const compasso = q<HTMLSelectElement>('#compasso');
+  const bpm = q<HTMLInputElement>('#bpm');
+  const aviso = q<HTMLElement>('.aviso-envio');
+  const campo = (nome: string) => q<HTMLInputElement | HTMLTextAreaElement>(`#${nome}`);
+
+  const parametros = new URLSearchParams(location.search);
+  const corrigir = parametros.get('corrigir');
+  let tomEscolhido = false; // a pessoa (ou a correção) já escolheu: o conversor não troca mais
+
+  /** Garante que o valor exista na lista (ex.: cântico em C#, que a lista escreve Db). */
+  const escolher = (select: HTMLSelectElement, valor: string | undefined) => {
+    if (!valor) return;
+    if (![...select.options].some((o) => o.value === valor)) select.add(new Option(valor, valor));
+    select.value = valor;
+  };
+
+  const atualizarProcurar = () => {
+    const nome = titulo.value.trim();
+    procurar.hidden = corrigir !== null || nome === '';
+    if (nome) procurar.href = linkDeBusca(nome);
+  };
+
+  let espera: ReturnType<typeof setTimeout> | undefined;
+  const atualizarPrevia = () => {
+    const { chordpro, tom: tomSugerido } = converterCifra(cifra.value);
+    previa.hidden = chordpro === '';
+    desenharCifra(desenho, chordpro);
+    if (!tomEscolhido && tomSugerido) escolher(tom, tomSugerido);
+  };
+
+  const mostrarErros = (erros: Partial<Record<string, string>>) => {
+    for (const nome of ['titulo', 'cifra', 'tom', 'compasso', 'bpm', 'observacao']) {
+      const mensagem = erros[nome] ?? '';
+      const saida = document.getElementById(`erro-${nome}`);
+      if (saida) saida.textContent = mensagem;
+      campo(nome).setAttribute('aria-invalid', String(mensagem !== ''));
+    }
+    const primeiro = Object.keys(erros)[0];
+    if (primeiro && primeiro !== 'canticoId') campo(primeiro).focus();
+  };
+
+  form.addEventListener('submit', (evento) => {
+    evento.preventDefault();
+    const sugestao: Sugestao = {
+      tipo: corrigir ? 'correcao' : 'novo',
+      ...(corrigir ? { canticoId: corrigir } : {}),
+      titulo: titulo.value.trim(),
+      cifra: cifra.value,
+      tom: tom.value,
+      compasso: compasso.value,
+      ...(bpm.value.trim() ? { bpm: Number(bpm.value) } : {}),
+      nome: campo('nome').value.trim(),
+      contato: campo('contato').value.trim(),
+      observacao: campo('observacao').value.trim(),
+    };
+    const erros = errosDaSugestao(sugestao);
+    mostrarErros(erros);
+    if (Object.keys(erros).length > 0) {
+      aviso.textContent = 'Falta arrumar o que está marcado em vermelho.';
+      return;
+    }
+    // O envio para o responsável chega na próxima parte (servidor de sugestões).
+    aviso.textContent = 'Tudo certo com a sugestão! O envio para aprovação chega na próxima versão do app.';
+  });
+
+  titulo.addEventListener('input', atualizarProcurar);
+  cifra.addEventListener('input', () => {
+    clearTimeout(espera);
+    espera = setTimeout(atualizarPrevia, 250);
+  });
+  tom.addEventListener('change', () => (tomEscolhido = true));
+
+  const mostrarFormulario = () => {
+    document.querySelector('.sem-js')?.remove();
+    form.hidden = false;
+    enviar.hidden = false;
+    atualizarProcurar();
+    atualizarPrevia();
+  };
+
+  if (corrigir) {
+    // Correção: abre já preenchido com o cântico, no formato "acordes em cima da letra".
+    document.title = 'Sugerir correção · Cânticos';
+    q('h1').textContent = 'Sugerir correção';
+    q('.intro').textContent =
+      'Arrume o que estiver errado e envie. Uma pessoa responsável confere antes de mudar no app.';
+    q<HTMLElement>('.so-correcao').hidden = false;
+    fetch(`/canticos/${encodeURIComponent(corrigir)}.json`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((dados: { titulo: string; tom: string; compasso: string; bpm?: number; chordpro: string }) => {
+        titulo.value = dados.titulo;
+        cifra.value = cifraParaTexto(dados.chordpro);
+        escolher(tom, dados.tom);
+        escolher(compasso, dados.compasso);
+        bpm.value = dados.bpm ? String(dados.bpm) : '';
+        tomEscolhido = true;
+        mostrarFormulario();
+      })
+      .catch(() => {
+        document.querySelector('.sem-js')?.remove();
+        q<HTMLElement>('.erro-carregar').hidden = false;
+      });
+  } else {
+    titulo.value = parametros.get('titulo') ?? '';
+    mostrarFormulario();
+  }
+</script>
+
+<style>
+  .voltar {
+    margin-block: var(--espaco-4);
+  }
+
+  h1 {
+    margin-bottom: var(--espaco-3);
+  }
+
+  .explica,
+  .sem-js,
+  .dica {
+    color: var(--cor-texto-secundario);
+  }
+
+  .intro {
+    margin-bottom: var(--espaco-5);
+  }
+
+  .erro-carregar {
+    padding: var(--espaco-3) var(--espaco-4);
+    border-radius: var(--raio);
+    background: var(--cor-aviso);
+  }
+
+  .erro-carregar[hidden] {
+    display: none;
+  }
+
+  .formulario-sugestao {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--espaco-5);
+    padding-bottom: var(--espaco-5);
+  }
+
+  .formulario-sugestao[hidden] {
+    display: none;
+  }
+
+  .campo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--espaco-2);
+  }
+
+  .campo[hidden] {
+    display: none;
+  }
+
+  label,
+  legend {
+    font-weight: var(--peso-forte);
+  }
+
+  /* A cifra copiada só fica alinhada com letra de largura fixa. */
+  .area-cifra {
+    min-height: 16em;
+    font-family: ui-monospace, 'Cascadia Mono', 'Roboto Mono', Menlo, Consolas, monospace;
+    font-size: var(--texto-min);
+    line-height: 1.4;
+    white-space: pre;
+    overflow-x: auto;
+    resize: vertical;
+  }
+
+  select.campo-texto {
+    appearance: auto;
+  }
+
+  .procurar {
+    justify-self: start;
+  }
+
+  .procurar[hidden] {
+    display: none;
+  }
+
+  .previa-sugestao {
+    padding: var(--espaco-4);
+    border: var(--borda-largura) solid var(--cor-borda);
+    border-radius: var(--raio);
+    display: grid;
+    gap: var(--espaco-2);
+  }
+
+  .previa-sugestao[hidden] {
+    display: none;
+  }
+
+  .previa-sugestao h2 {
+    font-size: var(--texto-corpo);
+  }
+
+  .lado-a-lado {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espaco-3);
+  }
+
+  .lado-a-lado > * {
+    flex: 1 1 8em;
+    min-width: 0;
+  }
+
+  .opcionais {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--espaco-4);
+    margin: 0;
+    padding: var(--espaco-4);
+    border: var(--borda-largura) solid var(--cor-superficie);
+    border-radius: var(--raio);
+  }
+
+  .aviso-envio:empty {
+    display: none;
+  }
+
+  .aviso-envio {
+    padding: var(--espaco-3) var(--espaco-4);
+    border-radius: var(--raio);
+    background: var(--cor-superficie);
+    font-weight: var(--peso-forte);
+  }
+</style>

@@ -54,7 +54,7 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
 
   <!-- Busca no texto (Pagefind): só a letra entra no índice; acordes e títulos de seção ficam de fora. -->
   <article
-    class="cifra"
+    class="cifra desenho-cifra"
     data-modo="cifra"
     data-id={cantico.id}
     data-tom={versao?.tom}
@@ -99,6 +99,14 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
     }
   </article>
 
+  <section class="corrigir" aria-labelledby="titulo-corrigir">
+    <h2 id="titulo-corrigir">Achou um erro?</h2>
+    <p>Na letra, num acorde ou no tom? Sugira a correção; uma pessoa responsável confere.</p>
+    <a class="botao" data-variante="secundario" href={`/sugerir/?corrigir=${encodeURIComponent(cantico.id)}`}>
+      Sugerir correção
+    </a>
+  </section>
+
   <dialog class="tela tela-tom" aria-labelledby="titulo-tom">
     <div class="tela-corpo">
       <div class="tela-cabecalho">
@@ -123,7 +131,7 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
 
       <section class="previa" aria-labelledby="titulo-previa">
         <h3 class="titulo-previa" id="titulo-previa">Prévia</h3>
-        <div class="previa-linhas"></div>
+        <div class="previa-linhas desenho-cifra"></div>
       </section>
     </div>
 
@@ -141,7 +149,7 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
 
       <section class="previa" aria-labelledby="titulo-previa-tamanho">
         <h3 class="titulo-previa" id="titulo-previa-tamanho">Prévia</h3>
-        <div class="previa-tamanho"></div>
+        <div class="previa-tamanho desenho-cifra"></div>
       </section>
 
       <div class="controle-tamanho">
@@ -220,6 +228,16 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
     <a class="botao nav-proximo" data-variante="primario" hidden>Próximo →</a>
     <a class="botao nav-fim" data-variante="primario" hidden>Voltar à setlist</a>
   </nav>
+
+  <!-- Aviso antes da rolagem quando o cântico não tem BPM informado. -->
+  <dialog class="aviso-bpm" aria-labelledby="titulo-aviso-bpm" aria-describedby="texto-aviso-bpm">
+    <h2 id="titulo-aviso-bpm">Andamento não informado</h2>
+    <p id="texto-aviso-bpm">
+      Este cântico ainda não tem o BPM. A rolagem vai usar 100 BPM, que pode não ser o ritmo da música. Use
+      “Devagar” e “Rápido” para ajustar.
+    </p>
+    <button type="button" class="botao entendi-bpm" data-variante="primario">Entendi</button>
+  </dialog>
 
   <template class="modelo-opcao-setlist">
     <li>
@@ -539,6 +557,46 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
     color: var(--cor-sobre-primaria);
   }
 
+  /* Aviso pequeno, no meio da tela (não ocupa a tela toda como Tom e Tamanho). */
+  .aviso-bpm {
+    width: min(100% - 32px, 28rem);
+    padding: var(--espaco-5);
+    border: var(--borda-largura) solid var(--cor-borda);
+    border-radius: var(--raio);
+    background: var(--cor-fundo);
+    color: var(--cor-texto);
+  }
+
+  .aviso-bpm[open] {
+    display: grid;
+    gap: var(--espaco-4);
+  }
+
+  .aviso-bpm::backdrop {
+    background: rgb(0 0 0 / 0.5);
+  }
+
+  .aviso-bpm h2 {
+    font-size: var(--texto-titulo);
+  }
+
+  .corrigir {
+    display: grid;
+    gap: var(--espaco-3);
+    margin-block: var(--espaco-5);
+    padding: var(--espaco-4);
+    border: var(--borda-largura) solid var(--cor-superficie);
+    border-radius: var(--raio);
+  }
+
+  .corrigir h2 {
+    font-size: var(--texto-corpo);
+  }
+
+  .corrigir p {
+    color: var(--cor-texto-secundario);
+  }
+
   /* A letra do cântico segue o nível escolhido (1 a 5), por cima da fonte do sistema. */
   .cifra {
     font-size: calc(var(--texto-corpo) * var(--escala-letra, 1));
@@ -593,60 +651,4 @@ const tituloCompleto = numero === undefined ? titulo : `${numero} · ${titulo}`;
     background: var(--cor-primaria);
   }
 
-  .secao {
-    margin-bottom: var(--espaco-5);
-  }
-
-  .refrao {
-    padding-left: var(--espaco-3);
-    border-left: 4px solid var(--cor-borda);
-  }
-
-  .titulo-secao {
-    font-size: 0.95em; /* acompanha o tamanho da letra; 19 px no tamanho normal */
-    font-weight: var(--peso-normal);
-    color: var(--cor-texto-secundario);
-    margin-bottom: var(--espaco-1);
-  }
-
-  .linha {
-    margin-bottom: var(--espaco-2);
-  }
-
-  /* Cada palavra é um bloco: a linha só quebra entre palavras. */
-  .palavra {
-    display: inline-flex;
-    align-items: flex-end;
-    /* Toda palavra tem a fileira do acorde (mesmo vazia); alinhar pela base
-       mantém a letra numa linha só, com ou sem acorde em cima. */
-    vertical-align: bottom;
-  }
-
-  .peca {
-    display: inline-flex;
-    flex-direction: column;
-  }
-
-  .acorde {
-    min-height: calc(1em * var(--entrelinha));
-    padding-right: 0.3em;
-    color: var(--cor-acorde);
-    font-weight: var(--peso-forte);
-    white-space: nowrap;
-  }
-
-  .nao-acorde {
-    color: var(--cor-texto-secundario);
-    font-weight: var(--peso-normal);
-  }
-
-  .texto {
-    white-space: pre;
-  }
-
-  /* Só letra: some a fileira de acordes e as linhas que só têm acordes. */
-  .cifra[data-modo='letra'] .acorde,
-  .cifra[data-modo='letra'] [data-so-acordes] {
-    display: none;
-  }
 </style>

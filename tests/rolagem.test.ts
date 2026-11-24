@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { lerChordpro } from '../src/lib/chordpro';
 import {
+  BPM_PADRAO,
   VELOCIDADE_MAX,
   VELOCIDADE_MIN,
   avancar,
@@ -127,5 +128,15 @@ describe('ajuste de velocidade', () => {
 describe('andamento no cabeçalho do cântico', () => {
   it('mostra o compasso e o BPM', () => {
     expect(rotuloAndamento('3/4', 66)).toBe('3/4 · 66 BPM');
+  });
+
+  it('sem BPM informado, mostra só o compasso', () => {
+    expect(rotuloAndamento('3/4', undefined)).toBe('3/4');
+  });
+});
+
+describe('cântico sem BPM informado', () => {
+  it('a rolagem usa 100 BPM, um andamento médio', () => {
+    expect(BPM_PADRAO).toBe(100);
   });
 });
