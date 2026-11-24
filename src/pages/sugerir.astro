@@ -1,6 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
 import { COMPASSOS, LIMITES, TONS } from '../lib/sugestao';
+
+// Chave pública do Turnstile ("não sou robô"). Sem a variável PUBLIC_TURNSTILE_SITE_KEY no build,
+// usa a chave de teste da Cloudflare, que sempre aprova (ver docs/sugestoes.md).
+const chaveTurnstile: string = import.meta.env['PUBLIC_TURNSTILE_SITE_KEY'] || '1x00000000000000000000AA';
 ---
 
 <Base titulo="Sugerir cântico">
@@ -126,13 +130,29 @@ import { COMPASSOS, LIMITES, TONS } from '../lib/sugestao';
       </div>
     </fieldset>
 
+    <div class="campo">
+      <p class="dica">Antes de enviar, a página confere que você não é um robô:</p>
+      <div class="cf-turnstile" data-sitekey={chaveTurnstile} data-language="pt-br" data-theme="light" data-size="flexible">
+      </div>
+    </div>
+
     <p class="aviso-envio" role="status" aria-live="polite"></p>
   </form>
+
+  <section class="enviada" aria-labelledby="titulo-enviada" hidden>
+    <h2 id="titulo-enviada" tabindex="-1">Sugestão enviada!</h2>
+    <p>Obrigado. Uma pessoa responsável vai conferir antes de ela aparecer no app.</p>
+    <a class="botao" data-variante="primario" href="/">Voltar para a lista</a>
+    <a class="botao" data-variante="secundario" href="/sugerir/">Sugerir outro cântico</a>
+  </section>
 
   <button slot="rodape" type="submit" form="form-sugestao" class="botao enviar" data-variante="primario" hidden>
     Enviar sugestão
   </button>
 </Base>
+
+<!-- Verificação "não sou robô" da Cloudflare (liberada no _headers). -->
+<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
 <script>
   import { cifraParaTexto, converterCifra, linkDeBusca } from '../lib/conversor';
@@ -151,6 +171,9 @@ import { COMPASSOS, LIMITES, TONS } from '../lib/sugestao';
   const compasso = q<HTMLSelectElement>('#compasso');
   const bpm = q<HTMLInputElement>('#bpm');
   const aviso = q<HTMLElement>('.aviso-envio');
+  /** O Turnstile põe a resposta neste campo escondido dentro do formulário. */
+  const tokenDoRobo = () => form.querySelector<HTMLInputElement>('[name="cf-turnstile-response"]')?.value ?? '';
+  const reiniciarRobo = () => (window as { turnstile?: { reset(): void } }).turnstile?.reset();
   const campo = (nome: string) => q<HTMLInputElement | HTMLTextAreaElement>(`#${nome}`);
 
   const parametros = new URLSearchParams(location.search);
@@ -189,8 +212,9 @@ import { COMPASSOS, LIMITES, TONS } from '../lib/sugestao';
     if (primeiro && primeiro !== 'canticoId') campo(primeiro).focus();
   };
 
-  form.addEventListener('submit', (evento) => {
+  form.addEventListener('submit', async (evento) => {
     evento.preventDefault();
+    if (enviar.disabled) return;
     const sugestao: Sugestao = {
       tipo: corrigir ? 'correcao' : 'novo',
       ...(corrigir ? { canticoId: corrigir } : {}),
@@ -209,8 +233,40 @@ import { COMPASSOS, LIMITES, TONS } from '../lib/sugestao';
       aviso.textContent = 'Falta arrumar o que está marcado em vermelho.';
       return;
     }
-    // O envio para o responsável chega na próxima parte (servidor de sugestões).
-    aviso.textContent = 'Tudo certo com a sugestão! O envio para aprovação chega na próxima versão do app.';
+    const token = tokenDoRobo();
+    if (!token) {
+      aviso.textContent = 'Espere a verificação "não sou robô" terminar (logo acima) e toque em Enviar de novo.';
+      return;
+    }
+
+    enviar.disabled = true;
+    aviso.textContent = 'Enviando…';
+    try {
+      const resposta = await fetch('/api/sugestoes', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...sugestao, token }),
+      });
+      const corpo: { erro?: string; erros?: Record<string, string> } = await resposta.json().catch(() => ({}));
+      if (resposta.status === 201) {
+        form.hidden = true;
+        enviar.hidden = true;
+        q<HTMLElement>('.enviada').hidden = false;
+        q<HTMLElement>('#titulo-enviada').focus();
+        return;
+      }
+      if (corpo.erros) {
+        mostrarErros(corpo.erros);
+        aviso.textContent = corpo.erros['canticoId'] ?? 'Falta arrumar o que está marcado em vermelho.';
+      } else {
+        aviso.textContent = corpo.erro ?? 'Não foi possível enviar agora. Tente de novo daqui a pouco.';
+      }
+    } catch {
+      aviso.textContent = 'Não foi possível enviar. Confira a internet e tente de novo.';
+    } finally {
+      enviar.disabled = false;
+      reiniciarRobo();
+    }
   });
 
   titulo.addEventListener('input', atualizarProcurar);
@@ -369,6 +425,18 @@ import { COMPASSOS, LIMITES, TONS } from '../lib/sugestao';
     padding: var(--espaco-4);
     border: var(--borda-largura) solid var(--cor-superficie);
     border-radius: var(--raio);
+  }
+
+  .enviada {
+    display: grid;
+    gap: var(--espaco-4);
+    padding: var(--espaco-5);
+    border-radius: var(--raio);
+    background: var(--cor-superficie);
+  }
+
+  .enviada[hidden] {
+    display: none;
   }
 
   .aviso-envio:empty {

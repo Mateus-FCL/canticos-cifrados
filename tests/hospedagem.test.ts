@@ -18,6 +18,12 @@ describe('regras da hospedagem (public/_headers)', () => {
     expect(bloco('/*')).toMatch(/Content-Security-Policy: default-src 'self'/);
   });
 
+  it('libera só a verificação "não sou robô" da Cloudflare (Turnstile), nada além', () => {
+    const csp = bloco('/*');
+    expect(csp).toMatch(/script-src 'self' 'wasm-unsafe-eval' https:\/\/challenges\.cloudflare\.com;/);
+    expect(csp).toMatch(/frame-src https:\/\/challenges\.cloudflare\.com;/);
+  });
+
   it('CSS e scripts do build ficam guardados no navegador por um ano (o nome muda a cada versão)', () => {
     expect(bloco('/_astro/*')).toMatch(/Cache-Control: public, max-age=31536000, immutable/);
   });
@@ -34,8 +40,25 @@ describe('configuração da Cloudflare (wrangler.jsonc)', () => {
   const texto = readFileSync(raiz('wrangler.jsonc'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
   const config = JSON.parse(texto) as {
     name: string;
-    assets: { directory: string; not_found_handling: string };
+    main: string;
+    assets: { directory: string; not_found_handling: string; binding: string; run_worker_first: string[] };
+    d1_databases: { binding: string }[];
   };
+
+  it('o servidor só atende /api/; o resto continua sendo arquivo do site', () => {
+    expect(config.main).toBe('worker/index.ts');
+    expect(config.assets.run_worker_first).toEqual(['/api/*']);
+    expect(config.assets.binding).toBe('ASSETS');
+  });
+
+  it('liga o banco de sugestões com o nome que o servidor usa', () => {
+    expect(config.d1_databases.map((b) => b.binding)).toEqual(['BANCO']);
+  });
+
+  it('os endereços de teste das branches também têm o banco (Previews não herdam nada da produção)', () => {
+    const previews = (config as unknown as { previews: { d1_databases?: { binding: string }[] } }).previews;
+    expect(previews.d1_databases?.map((b) => b.binding)).toEqual(['BANCO']);
+  });
 
   it('serve a pasta que o build gera', () => {
     expect(config.name).toBe('canticos-cifrados');

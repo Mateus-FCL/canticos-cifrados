@@ -1,14 +1,37 @@
 // Hospedagem na Cloudflare (Workers com arquivos estáticos). Passo a passo em docs/hospedagem.md.
 // O app é só arquivos: o "pnpm build" gera tudo em dist/ e a Cloudflare serve essa pasta.
+// O servidor (worker/index.ts) só atende os endereços /api/ (sugestões de cânticos).
 {
   "name": "canticos-cifrados",
+  "main": "worker/index.ts",
   "compatibility_date": "2026-11-01",
   "assets": {
     "directory": "./dist",
+    "binding": "ASSETS",
     // Endereço que não existe mostra dist/404.html (e não a lista de cânticos).
-    "not_found_handling": "404-page"
+    "not_found_handling": "404-page",
+    // Só /api/ passa pelo servidor; páginas e arquivos saem direto, como antes.
+    "run_worker_first": ["/api/*"]
   },
-  // Endereço de teste para cada branch enviada ao GitHub ("npx wrangler preview" exige este bloco,
-  // mesmo vazio). A branch main continua publicando no endereço oficial com "npx wrangler deploy".
-  "previews": {}
+  // Banco das sugestões. Criar no painel: Storage & databases → D1 (ver docs/sugestoes.md).
+  "d1_databases": [
+    {
+      "binding": "BANCO",
+      "database_name": "canticos-sugestoes",
+      "database_id": "ecd55ffb-a5bd-42fb-a195-88c6184a953c"
+    }
+  ],
+  // Endereço de teste para cada branch enviada ao GitHub ("npx wrangler preview" exige este bloco).
+  // A branch main continua publicando no endereço oficial com "npx wrangler deploy".
+  // Previews NÃO herdam nada da produção: o banco precisa ser repetido aqui. Por enquanto é o
+  // mesmo banco (só tem sugestões de teste); o segredo TURNSTILE_SECRET vai em "Previews Base".
+  "previews": {
+    "d1_databases": [
+      {
+        "binding": "BANCO",
+        "database_name": "canticos-sugestoes",
+        "database_id": "ecd55ffb-a5bd-42fb-a195-88c6184a953c"
+      }
+    ]
+  }
 }
