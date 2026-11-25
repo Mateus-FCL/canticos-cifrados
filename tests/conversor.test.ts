@@ -87,6 +87,36 @@ describe('converter a cifra copiada de um site (acordes em cima da letra)', () =
     expect(converterCifra(texto('', '', 'Um', '', '', '', 'Dois', '')).chordpro).toBe(texto('Um', '', 'Dois'));
   });
 
+  it('ignora caracteres invisíveis que alguns sites põem no texto copiado', () => {
+    const invisiveis = '​Cadd9​\n﻿É um defeito⁠ meu';
+    expect(converterCifra(invisiveis).chordpro).toBe('[Cadd9]É um defeito meu');
+  });
+
+  it('texto copiado com espaçamento duplo: uma linha em branco é só quebra de linha', () => {
+    const duplo = texto(
+      'Cadd9',
+      '',
+      'É um defeito meu',
+      '',
+      'B7          Em7',
+      '',
+      'Querer você assim',
+      '',
+      '',
+      'Dm7',
+      '',
+      'Preciso então',
+    );
+    expect(converterCifra(duplo).chordpro).toBe(
+      texto('[Cadd9]É um defeito meu', '[B7]Querer você [Em7]assim', '', '[Dm7]Preciso então'),
+    );
+  });
+
+  it('texto com espaçamento normal continua usando a linha em branco para separar estrofes', () => {
+    const normal = texto('G', 'Luz', 'D', 'Paz', '', 'C', 'Amor', 'G', 'Fé');
+    expect(converterCifra(normal).chordpro).toBe(texto('[G]Luz', '[D]Paz', '', '[C]Amor', '[G]Fé'));
+  });
+
   it('colchetes e chaves na letra não confundem o formato', () => {
     expect(converterCifra('Santo {santo} [santo]').chordpro).toBe('Santo (santo) (santo)');
   });

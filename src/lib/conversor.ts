@@ -84,7 +84,52 @@ export interface Conversao {
   tom?: string;
 }
 
-export function converterCifra(texto: string): Conversao {
+/** Caracteres invisíveis que sites e aplicativos põem no texto copiado (espaço de largura zero etc.). */
+const INVISIVEIS = /[​-‍⁠﻿­]/g;
+
+/**
+ * Texto copiado com espaçamento duplo (uma linha em branco entre todas as linhas): uma linha em
+ * branco vira só quebra de linha, e duas ou mais viram a separação entre estrofes.
+ * Só mexe quando quase todas as linhas vêm separadas assim, para não estragar cifras normais.
+ */
+function desfazerEspacamentoDuplo(linhas: string[]): string[] {
+  const cheia = (i: number) => (linhas[i] ?? '').trim() !== '';
+  let separadasPorUma = 0;
+  let coladas = 0;
+  for (let i = 1; i < linhas.length; i++) {
+    if (!cheia(i)) continue;
+    if (cheia(i - 1)) coladas++;
+    else if (i >= 2 && cheia(i - 2)) separadasPorUma++;
+  }
+  if (separadasPorUma < 3 || separadasPorUma < 4 * coladas) return linhas;
+
+  const saida: string[] = [];
+  let brancas = 0;
+  for (const linha of linhas) {
+    if (linha.trim() === '') {
+      brancas++;
+      continue;
+    }
+    if (brancas >= 2 && saida.length > 0) saida.push('');
+    brancas = 0;
+    saida.push(linha);
+  }
+  return saida;
+}
+
+/** Normaliza o texto colado: quebras de linha, espaços especiais, tabulação e invisíveis. */
+function limparTextoColado(texto: string): string {
+  const linhas = texto
+    .replace(/\r\n?/g, '\n')
+    .replace(INVISIVEIS, '')
+    .replace(/ /g, ' ')
+    .replace(/\t/g, '    ')
+    .split('\n');
+  return desfazerEspacamentoDuplo(linhas).join('\n');
+}
+
+export function converterCifra(textoColado: string): Conversao {
+  const texto = limparTextoColado(textoColado);
   const linhas = texto.replace(/\r\n?/g, '\n').replace(/ /g, ' ').replace(/\t/g, '    ').split('\n');
   const saida: string[] = [];
   let tom: string | undefined;
