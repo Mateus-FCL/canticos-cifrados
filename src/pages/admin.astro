@@ -8,6 +8,7 @@ import { COMPASSOS, LIMITES, TONS } from '../lib/sugestao';
 
   <!-- 1. Entrar -->
   <section class="tela-entrar" aria-labelledby="titulo-entrar" hidden>
+    <a class="botao voltar-app" data-variante="secundario" href="/">← Voltar ao app</a>
     <h1 id="titulo-entrar">Painel do admin</h1>
     <p class="explica">Aqui você aprova ou recusa as sugestões de cânticos e pode excluir cânticos do app.</p>
     <form class="form-entrar" novalidate>
@@ -29,6 +30,7 @@ import { COMPASSOS, LIMITES, TONS } from '../lib/sugestao';
 
   <!-- 2. Lista das sugestões pendentes -->
   <section class="tela-lista" aria-labelledby="titulo-lista" hidden>
+    <a class="botao voltar-app" data-variante="secundario" href="/">← Voltar ao app</a>
     <div class="topo">
       <h1 id="titulo-lista">Sugestões</h1>
       <button type="button" class="botao sair" data-variante="secundario">Sair</button>
@@ -640,6 +642,7 @@ import { COMPASSOS, LIMITES, TONS } from '../lib/sugestao';
     height: 1.5rem;
   }
 
+  .voltar-app,
   .voltar-lista,
   .voltar-sugestoes {
     justify-self: start;
