@@ -2,9 +2,16 @@
 import Base from '../layouts/Base.astro';
 import { COMPASSOS, LIMITES, TONS } from '../lib/sugestao';
 
-// Chave pública do Turnstile ("não sou robô"). Sem a variável PUBLIC_TURNSTILE_SITE_KEY no build,
-// usa a chave de teste da Cloudflare, que sempre aprova (ver docs/sugestoes.md).
-const chaveTurnstile: string = import.meta.env['PUBLIC_TURNSTILE_SITE_KEY'] || '1x00000000000000000000AA';
+// Chave pública do Turnstile ("não sou robô"), lida no build: primeiro do ambiente do build
+// (variável da Cloudflare), depois do .env. Sem ela, usa a chave de teste da Cloudflare, que
+// sempre aprova e mostra "Somente para teste" (ver docs/sugestoes.md).
+const CHAVE_DE_TESTE = '1x00000000000000000000AA';
+const chaveConfigurada: string | undefined =
+  process.env['PUBLIC_TURNSTILE_SITE_KEY']?.trim() || import.meta.env.PUBLIC_TURNSTILE_SITE_KEY?.trim();
+if (!chaveConfigurada) {
+  console.warn('[sugerir] PUBLIC_TURNSTILE_SITE_KEY não encontrada no build: usando a chave de TESTE do Turnstile.');
+}
+const chaveTurnstile = chaveConfigurada || CHAVE_DE_TESTE;
 ---
 
 <Base titulo="Sugerir cântico">
