@@ -19,4 +19,12 @@ export interface Ambiente {
   BANCO: D1;
   /** Os arquivos do site (dist/), para conferir se um cântico existe. */
   ASSETS: { fetch(pedido: Request | string): Promise<Response> };
+  /** Senha do painel do admin (segredo na Cloudflare). Sem ela, o painel fica fechado. */
+  ADMIN_SENHA?: string;
+  /** Token do GitHub com escrita em "Contents" deste repositório (segredo). Sem ele, não dá para aprovar. */
+  GITHUB_TOKEN?: string;
+  /** "dono/repositório" no GitHub (variável no wrangler.jsonc). */
+  REPOSITORIO_GITHUB?: string;
+  /** Ramo onde as aprovações são gravadas: "main" na produção, a branch de teste nas Previews. */
+  RAMO_CONTEUDO?: string;
 }

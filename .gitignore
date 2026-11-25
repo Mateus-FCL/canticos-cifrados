@@ -8,3 +8,8 @@ public/pagefind/
 .env
 .env.*
 !.env.example
+# Segredos do teste local com "npx wrangler dev" (senha do painel, token do GitHub).
+.dev.vars
+.dev.vars.*
+# Banco e arquivos locais do wrangler dev.
+.wrangler/

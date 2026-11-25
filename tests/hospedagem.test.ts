@@ -55,6 +55,17 @@ describe('configuração da Cloudflare (wrangler.jsonc)', () => {
     expect(config.d1_databases.map((b) => b.binding)).toEqual(['BANCO']);
   });
 
+  it('aprovações no endereço oficial vão para a main; nos endereços de teste, nunca para a main', () => {
+    const c = config as unknown as {
+      vars: Record<string, string>;
+      previews: { vars: Record<string, string> };
+    };
+    expect(c.vars['RAMO_CONTEUDO']).toBe('main');
+    expect(c.previews.vars['RAMO_CONTEUDO']).toBeTruthy();
+    expect(c.previews.vars['RAMO_CONTEUDO']).not.toBe('main');
+    expect(c.previews.vars['REPOSITORIO_GITHUB']).toBe(c.vars['REPOSITORIO_GITHUB']);
+  });
+
   it('os endereços de teste das branches também têm o banco (Previews não herdam nada da produção)', () => {
     const previews = (config as unknown as { previews: { d1_databases?: { binding: string }[] } }).previews;
     expect(previews.d1_databases?.map((b) => b.binding)).toEqual(['BANCO']);
