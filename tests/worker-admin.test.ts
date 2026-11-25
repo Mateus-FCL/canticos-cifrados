@@ -35,18 +35,25 @@ const correcao: SugestaoGuardada = {
 };
 const ARQUIVO_ATUAL = 'numero: 35\ntitulo: Paz no Caminho\nversoes:\n  - tom: C\n    compasso: 3/4\n    bpm: 66\n    chordpro: "[C]Pelo caminho [F]vou"\n';
 
-function preparar(opcoes: { senha?: string | undefined; erros?: number; semGithub?: boolean; shaAtual?: string } = {}) {
+function preparar(
+  opcoes: { senha?: string | undefined; erros?: number; semGithub?: boolean; shaAtual?: string; soUmCantico?: boolean } = {},
+) {
   const sugestoes = new Map([novo, correcao].map((s) => [s.id, { ...s }]));
   const gravados: { caminho: string; texto: string; mensagem: string; sha?: string }[] = [];
   const errosRegistrados: string[] = [];
+  const apagados: { caminho: string; mensagem: string; sha: string }[] = [];
   const deps: DependenciasAdmin = {
     ...('senha' in opcoes ? (opcoes.senha === undefined ? {} : { senha: opcoes.senha }) : { senha: SENHA }),
     agora: () => AGORA,
     resumoDoIp: async (ip) => `r-${ip}`,
-    indice: async () => [
-      { id: 'cantico-de-exemplo', numero: 12, titulo: 'Cântico de Exemplo' },
-      { id: 'paz-no-caminho', numero: 35, titulo: 'Paz no Caminho' },
-    ],
+    indice: async () =>
+      opcoes.soUmCantico
+        ? [{ id: 'paz-no-caminho', numero: 35, titulo: 'Paz no Caminho' }]
+        : [
+            { id: 'paz-no-caminho', numero: 35, titulo: 'Paz no Caminho' },
+            { id: 'cantico-de-exemplo', numero: 12, titulo: 'Cântico de Exemplo' },
+            { id: 'sem-numero', titulo: 'Aleluia' },
+          ],
     banco: {
       listar: async (status) =>
         [...sugestoes.values()]
@@ -72,10 +79,15 @@ function preparar(opcoes: { senha?: string | undefined; erros?: number; semGithu
               gravados.push({ caminho, texto, mensagem, ...(sha ? { sha } : {}) });
               return { url: 'https://github.com/commit/1' };
             },
+            apagar: async (caminho, mensagem, sha) => {
+              if (sha !== (opcoes.shaAtual ?? 'sha-1')) return { conflito: true };
+              apagados.push({ caminho, mensagem, sha });
+              return {};
+            },
           },
         }),
   };
-  return { deps, sugestoes, gravados, errosRegistrados };
+  return { deps, sugestoes, gravados, errosRegistrados, apagados };
 }
 
 async function cookie(senha = SENHA) {
@@ -261,5 +273,94 @@ describe('aprovar e recusar', () => {
       deps,
     );
     expect(resposta.status).toBe(409);
+  });
+});
+
+describe('excluir cânticos do app', () => {
+  it('lista os cânticos do app em ordem de número (sem número no fim)', async () => {
+    const { deps } = preparar();
+    const resposta = await atenderAdmin(pedido('/canticos', { cookie: await cookie() }), deps);
+    expect(resposta.status).toBe(200);
+    const { canticos } = (await resposta.json()) as { canticos: { id: string }[] };
+    expect(canticos.map((c) => c.id)).toEqual(['cantico-de-exemplo', 'paz-no-caminho', 'sem-numero']);
+  });
+
+  it('sem estar logado, não lista nem exclui', async () => {
+    const { deps, apagados } = preparar();
+    expect((await atenderAdmin(pedido('/canticos'), deps)).status).toBe(401);
+    expect((await atenderAdmin(pedido('/canticos/paz-no-caminho/excluir', { metodo: 'POST' }), deps)).status).toBe(401);
+    expect(apagados).toHaveLength(0);
+  });
+
+  it('excluir: apaga o arquivo no GitHub (um commit), usando a versão atual do arquivo', async () => {
+    const { deps, apagados } = preparar();
+    const resposta = await atenderAdmin(
+      pedido('/canticos/paz-no-caminho/excluir', { metodo: 'POST', cookie: await cookie() }),
+      deps,
+    );
+    expect(resposta.status).toBe(200);
+    expect(apagados).toEqual([
+      { caminho: 'src/content/canticos/paz-no-caminho.yaml', mensagem: expect.stringMatching(/Paz no Caminho/), sha: 'sha-1' },
+    ]);
+  });
+
+  it('pedido vindo de outro site é recusado', async () => {
+    const { deps, apagados } = preparar();
+    const resposta = await atenderAdmin(
+      pedido('/canticos/paz-no-caminho/excluir', { metodo: 'POST', cookie: await cookie(), origem: 'https://outro.site' }),
+      deps,
+    );
+    expect(resposta.status).toBe(403);
+    expect(apagados).toHaveLength(0);
+  });
+
+  it('cântico que não existe (ou já foi excluído): avisa', async () => {
+    const { deps, apagados } = preparar();
+    const resposta = await atenderAdmin(
+      pedido('/canticos/cantico-de-exemplo/excluir', { metodo: 'POST', cookie: await cookie() }),
+      deps,
+    );
+    expect(resposta.status).toBe(404);
+    expect(apagados).toHaveLength(0);
+  });
+
+  it('nome de arquivo estranho (tentando sair da pasta) é recusado', async () => {
+    const { deps, apagados } = preparar();
+    const resposta = await atenderAdmin(
+      pedido('/canticos/..%2F..%2Fpackage/excluir', { metodo: 'POST', cookie: await cookie() }),
+      deps,
+    );
+    expect(resposta.status).toBe(404);
+    expect(apagados).toHaveLength(0);
+  });
+
+  it('não deixa excluir o último cântico (o app ficaria vazio)', async () => {
+    const { deps, apagados } = preparar({ soUmCantico: true });
+    const resposta = await atenderAdmin(
+      pedido('/canticos/paz-no-caminho/excluir', { metodo: 'POST', cookie: await cookie() }),
+      deps,
+    );
+    expect(resposta.status).toBe(409);
+    expect(apagados).toHaveLength(0);
+  });
+
+  it('o arquivo mudou no meio do caminho: avisa e não apaga', async () => {
+    const { deps, apagados } = preparar();
+    deps.repositorio!.apagar = async () => ({ conflito: true });
+    const resposta = await atenderAdmin(
+      pedido('/canticos/paz-no-caminho/excluir', { metodo: 'POST', cookie: await cookie() }),
+      deps,
+    );
+    expect(resposta.status).toBe(409);
+    expect(apagados).toHaveLength(0);
+  });
+
+  it('sem o token do GitHub configurado, avisa que não dá para excluir', async () => {
+    const { deps } = preparar({ semGithub: true });
+    const resposta = await atenderAdmin(
+      pedido('/canticos/paz-no-caminho/excluir', { metodo: 'POST', cookie: await cookie() }),
+      deps,
+    );
+    expect(resposta.status).toBe(503);
   });
 });

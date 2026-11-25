@@ -1,6 +1,7 @@
 /**
  * Painel do admin (/api/admin/*): entrar com a senha, ver as sugestões pendentes,
- * aprovar (grava o cântico no GitHub) ou recusar. Tudo de fora chega por `DependenciasAdmin`.
+ * aprovar (grava o cântico no GitHub) ou recusar, e excluir cânticos do app.
+ * Tudo de fora chega por `DependenciasAdmin`.
  */
 import { parse } from 'yaml';
 import { cifraParaTexto, converterCifra } from '../src/lib/conversor';
@@ -36,6 +37,8 @@ export interface Repositorio {
   ler(caminho: string): Promise<{ texto: string; sha: string } | null>;
   /** `conflito`: o arquivo mudou (ou já existe) desde a versão `sha` informada. */
   gravar(caminho: string, texto: string, mensagem: string, sha?: string): Promise<{ url?: string; conflito?: true }>;
+  /** Apaga o arquivo na versão `sha`. `conflito`: ele mudou desde então. */
+  apagar(caminho: string, mensagem: string, sha: string): Promise<{ url?: string; conflito?: true }>;
 }
 
 export interface ItemIndice {
@@ -192,6 +195,34 @@ async function aprovar(pedido: Request, sugestao: SugestaoGuardada, deps: Depend
   return json({ ok: true, arquivo: caminho, ...(gravado.url ? { url: gravado.url } : {}) });
 }
 
+/** Números primeiro (em ordem), depois os sem número, por título. */
+function emOrdem(indice: ItemIndice[]): ItemIndice[] {
+  return [...indice].sort(
+    (a, b) =>
+      (a.numero ?? Number.POSITIVE_INFINITY) - (b.numero ?? Number.POSITIVE_INFINITY) ||
+      a.titulo.localeCompare(b.titulo, 'pt-BR'),
+  );
+}
+
+async function excluir(id: string, deps: DependenciasAdmin): Promise<Response> {
+  // Só nomes de arquivo como os do app (sem barras nem pontos): nada fora da pasta dos cânticos.
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) return json({ erro: 'Cântico não encontrado.' }, 404);
+  if (!deps.repositorio) return json({ erro: 'Falta o GITHUB_TOKEN para excluir (veja docs/admin.md).' }, 503);
+
+  const indice = await deps.indice();
+  if (indice.length <= 1 && indice.some((c) => c.id === id)) {
+    return json({ erro: 'Este é o último cântico do app; ele não pode ficar vazio.' }, 409);
+  }
+  const caminho = `${PASTA}/${id}.yaml`;
+  const atual = await deps.repositorio.ler(caminho);
+  if (!atual) return json({ erro: 'Este cântico não existe mais (talvez já tenha sido excluído).' }, 404);
+
+  const titulo = indice.find((c) => c.id === id)?.titulo ?? id;
+  const apagado = await deps.repositorio.apagar(caminho, `Exclui o cântico "${titulo}" (pelo painel do admin)`, atual.sha);
+  if (apagado.conflito) return json({ erro: 'Este cântico mudou agora há pouco. Atualize a lista e tente de novo.' }, 409);
+  return json({ ok: true, ...(apagado.url ? { url: apagado.url } : {}) });
+}
+
 export async function atenderAdmin(pedido: Request, deps: DependenciasAdmin): Promise<Response> {
   const url = new URL(pedido.url);
   const caminho = url.pathname.replace(/^\/api\/admin/, '') || '/';
@@ -210,6 +241,10 @@ export async function atenderAdmin(pedido: Request, deps: DependenciasAdmin): Pr
 
   if (caminho === '/sessao') return json({ ok: true });
   if (caminho === '/sugestoes' && !ehPost) return json({ sugestoes: await deps.banco.listar('pendente') });
+
+  if (caminho === '/canticos' && !ehPost) return json({ canticos: emOrdem(await deps.indice()) });
+  const exclusao = /^\/canticos\/([^/]+)\/excluir$/.exec(caminho);
+  if (exclusao && ehPost) return excluir(decodeURIComponent(exclusao[1] ?? ''), deps);
 
   const rota = /^\/sugestoes\/([^/]+)(?:\/(aprovar|recusar))?$/.exec(caminho);
   if (rota) {

@@ -10,7 +10,11 @@ Lá o admin:
 - confere e arruma título, número, tom, compasso, BPM e cifra, com a prévia ao vivo;
 - toca em **Aprovar e publicar**: o servidor grava o cântico no GitHub (um commit) e a
   Cloudflare refaz o site; em uns **2 minutos** ele aparece no app;
-- ou toca em **Recusar**: a sugestão sai da lista.
+- ou toca em **Recusar**: a sugestão sai da lista;
+- em **Ver cânticos do app**, procura um cântico e toca na **lixeira** para excluí-lo: o servidor
+  apaga o arquivo no GitHub (um commit) e em uns **2 minutos** ele some do app e das setlists.
+  O último cântico não pode ser excluído. Para trazer de volta, recupere o arquivo pelo
+  histórico do GitHub (ou peça ajuda a quem cuida do código).
 
 Proteções: senha conferida no servidor; **5 erros de senha em 15 minutos** bloqueiam
 temporariamente; **trocar a senha desloga todo mundo**; o app confere o cântico com as mesmas
@@ -73,7 +77,7 @@ terminal). Todo mundo que estava logado sai e precisa da senha nova.
 | O que aparece | O que fazer |
 |---|---|
 | "O painel ainda não tem senha configurada" | Falta o segredo `ADMIN_SENHA` (passo 2) |
-| "Falta o GITHUB_TOKEN" ao aprovar | Falta o segredo `GITHUB_TOKEN` (passos 1 e 2) |
+| "Falta o GITHUB_TOKEN" ao aprovar ou excluir | Falta o segredo `GITHUB_TOKEN` (passos 1 e 2) |
 | "Muitas tentativas erradas" | Espere 15 minutos |
 | "Algo deu errado no servidor" ao aprovar | Token vencido ou sem permissão de *Contents*; veja os logs em **Observability** |
 | Aprovou, mas o cântico não apareceu | Veja se o build da Cloudflare depois do commit ficou verde |
