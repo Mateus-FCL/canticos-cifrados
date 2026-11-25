@@ -35,7 +35,8 @@ const direitosSchema = z.object({
 const versaoSchema = z.object({
   tom,
   compasso,
-  bpm: z.number().int().min(30).max(300),
+  /** Em branco quando ninguém informou; a autorolagem então usa BPM_PADRAO (lib/rolagem). */
+  bpm: z.number().int().min(30).max(300).optional(),
   /** Letra com os acordes entre colchetes, no formato ChordPro. */
   chordpro: z.string().trim().min(1, 'a versão precisa da letra com cifra'),
   audio: audio.optional(),

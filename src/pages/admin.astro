@@ -1,0 +1,761 @@
+---
+import Base from '../layouts/Base.astro';
+import { COMPASSOS, LIMITES, TONS } from '../lib/sugestao';
+---
+
+<Base titulo="Painel do admin" avisoSemInternet={false} semIndexar>
+  <p class="sem-js">O painel precisa do JavaScript ligado no navegador.</p>
+
+  <!-- 1. Entrar -->
+  <section class="tela-entrar" aria-labelledby="titulo-entrar" hidden>
+    <a class="botao voltar-app" data-variante="secundario" href="/">← Voltar ao app</a>
+    <h1 id="titulo-entrar">Painel do admin</h1>
+    <p class="explica">Aqui você aprova ou recusa as sugestões de cânticos e pode excluir cânticos do app.</p>
+    <form class="form-entrar" novalidate>
+      <div class="campo">
+        <label for="senha">Senha</label>
+        <input
+          id="senha"
+          name="senha"
+          class="campo-texto"
+          type="password"
+          autocomplete="current-password"
+          aria-describedby="erro-senha"
+        />
+        <p id="erro-senha" class="mensagem-erro" role="alert"></p>
+      </div>
+      <button type="submit" class="botao" data-variante="primario">Entrar</button>
+    </form>
+  </section>
+
+  <!-- 2. Lista das sugestões pendentes -->
+  <section class="tela-lista" aria-labelledby="titulo-lista" hidden>
+    <a class="botao voltar-app" data-variante="secundario" href="/">← Voltar ao app</a>
+    <div class="topo">
+      <h1 id="titulo-lista">Sugestões</h1>
+      <button type="button" class="botao sair" data-variante="secundario">Sair</button>
+    </div>
+    <p class="aviso-lista" role="status" aria-live="polite"></p>
+    <section class="grupo" aria-labelledby="titulo-novos">
+      <h2 id="titulo-novos">Cânticos novos</h2>
+      <ul class="lista lista-novos"></ul>
+    </section>
+    <section class="grupo" aria-labelledby="titulo-correcoes">
+      <h2 id="titulo-correcoes">Correções</h2>
+      <ul class="lista lista-correcoes"></ul>
+    </section>
+    <button type="button" class="botao atualizar" data-variante="secundario">Atualizar a lista</button>
+    <section class="grupo" aria-labelledby="titulo-do-app">
+      <h2 id="titulo-do-app">Cânticos do app</h2>
+      <p class="dica">Para tirar do app um cântico que não deve mais aparecer.</p>
+      <button type="button" class="botao abrir-canticos" data-variante="secundario">Ver cânticos do app</button>
+    </section>
+  </section>
+
+  <!-- 4. Cânticos que já estão no app (para excluir) -->
+  <section class="tela-canticos" aria-labelledby="titulo-canticos" hidden>
+    <button type="button" class="botao voltar-sugestoes" data-variante="secundario">← Sugestões</button>
+    <h1 id="titulo-canticos" tabindex="-1">Cânticos do app</h1>
+    <p class="dica">Toque na lixeira para excluir. O cântico some do app em uns 2 minutos.</p>
+    <div class="campo">
+      <label for="filtro-canticos">Procurar</label>
+      <input id="filtro-canticos" class="campo-texto" type="search" autocomplete="off" placeholder="Nome ou número" />
+    </div>
+    <p class="aviso-canticos" role="status" aria-live="polite"></p>
+    <ul class="lista lista-app"></ul>
+  </section>
+
+  <dialog class="tela tela-excluir" aria-labelledby="titulo-excluir" aria-describedby="texto-excluir">
+    <div class="tela-corpo">
+      <h2 id="titulo-excluir" class="pergunta-excluir"></h2>
+      <p id="texto-excluir">
+        Ele some do app para todo mundo em uns 2 minutos e sai também das setlists. Se mudar de ideia, dá para
+        recuperar pelo histórico do GitHub.
+      </p>
+      <div class="decisao">
+        <button type="button" class="botao cancelar-excluir" data-variante="secundario">Cancelar</button>
+        <button type="button" class="botao confirmar-excluir" data-variante="perigo">Excluir</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 3. Detalhe de uma sugestão -->
+  <section class="tela-detalhe" aria-labelledby="titulo-detalhe" hidden>
+    <button type="button" class="botao voltar-lista" data-variante="secundario">← Sugestões</button>
+    <p class="tipo-detalhe"></p>
+    <h1 id="titulo-detalhe" tabindex="-1"></h1>
+    <dl class="quem"></dl>
+
+    <section class="mudancas" aria-labelledby="titulo-mudancas" hidden>
+      <h2 id="titulo-mudancas">O que mudou na cifra</h2>
+      <p class="dica">Linhas com <strong>−</strong> saem; linhas com <strong>+</strong> entram.</p>
+      <div class="diferenca"></div>
+    </section>
+
+    <form class="form-aprovar" novalidate>
+      <h2>Conferir antes de publicar</h2>
+      <p class="dica">Pode arrumar qualquer campo. É assim que vai entrar no app.</p>
+      <div class="campo">
+        <label for="a-titulo">Título</label>
+        <input id="a-titulo" class="campo-texto" type="text" maxlength={LIMITES.titulo} aria-describedby="e-titulo" />
+        <p id="e-titulo" class="mensagem-erro"></p>
+      </div>
+      <div class="lado-a-lado">
+        <div class="campo">
+          <label for="a-numero">Número</label>
+          <input id="a-numero" class="campo-texto" type="number" inputmode="numeric" min="1" aria-describedby="d-numero e-numero" />
+          <p id="d-numero" class="dica">Em branco: sem número.</p>
+          <p id="e-numero" class="mensagem-erro"></p>
+        </div>
+        <div class="campo">
+          <label for="a-bpm">BPM</label>
+          <input id="a-bpm" class="campo-texto" type="number" inputmode="numeric" min="30" max="300" aria-describedby="e-bpm" />
+          <p id="e-bpm" class="mensagem-erro"></p>
+        </div>
+      </div>
+      <div class="lado-a-lado">
+        <div class="campo">
+          <label for="a-tom">Tom</label>
+          <select id="a-tom" class="campo-texto" aria-describedby="e-tom">
+            {TONS.map((t) => <option value={t}>{t}</option>)}
+          </select>
+          <p id="e-tom" class="mensagem-erro"></p>
+        </div>
+        <div class="campo">
+          <label for="a-compasso">Compasso</label>
+          <select id="a-compasso" class="campo-texto" aria-describedby="e-compasso">
+            {COMPASSOS.map((c) => <option value={c}>{c}</option>)}
+          </select>
+          <p id="e-compasso" class="mensagem-erro"></p>
+        </div>
+      </div>
+      <div class="campo">
+        <label for="a-cifra">Cifra (acordes em cima da letra)</label>
+        <textarea
+          id="a-cifra"
+          class="campo-texto area-cifra"
+          rows="12"
+          spellcheck="false"
+          autocapitalize="off"
+          wrap="off"
+          aria-describedby="e-cifra"></textarea>
+        <p id="e-cifra" class="mensagem-erro"></p>
+      </div>
+      <section class="previa" aria-labelledby="titulo-previa">
+        <h2 id="titulo-previa">Prévia</h2>
+        <div class="desenho-cifra previa-cifra"></div>
+      </section>
+
+      <p class="aviso-detalhe" role="status" aria-live="polite"></p>
+      <div class="decisao">
+        <button type="submit" class="botao aprovar" data-variante="primario">Aprovar e publicar</button>
+        <button type="button" class="botao recusar" data-variante="perigo">Recusar</button>
+      </div>
+    </form>
+  </section>
+
+  <template class="modelo-cantico">
+    <li class="item-app">
+      <span class="nome-app"><span class="numero-app"></span><span class="titulo-app"></span></span>
+      <button type="button" class="botao excluir" data-variante="perigo">
+        <svg
+          class="icone"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"></path>
+        </svg>
+        <span class="visualmente-oculto rotulo-excluir"></span>
+      </button>
+    </li>
+  </template>
+
+  <template class="modelo-item">
+    <li>
+      <button type="button" class="cartao">
+        <span class="nome"></span>
+        <span class="quando"></span>
+      </button>
+    </li>
+  </template>
+</Base>
+
+<script>
+  import { converterCifra } from '../lib/conversor';
+  import { diferencaDeLinhas, houveMudanca } from '../lib/diferenca';
+  import { desenharCifra } from '../scripts/desenhar-cifra';
+
+  interface Resumo {
+    id: string;
+    tipo: 'novo' | 'correcao';
+    titulo: string;
+    criadaEm: string;
+  }
+  interface Detalhe {
+    sugestao: {
+      id: string;
+      tipo: 'novo' | 'correcao';
+      criadaEm: string;
+      dados: {
+        titulo: string;
+        cifra: string;
+        tom: string;
+        compasso: string;
+        bpm?: number;
+        nome?: string;
+        contato?: string;
+        observacao?: string;
+      };
+    };
+    numeroSugerido: number;
+    atual?: { sha: string; numero?: number; titulo: string; texto: string };
+    erro?: string;
+  }
+  interface CanticoDoApp {
+    id: string;
+    numero?: number;
+    titulo: string;
+  }
+  interface Resposta {
+    ok?: boolean;
+    erro?: string;
+    erros?: Record<string, string>;
+    sugestoes?: Resumo[];
+    canticos?: CanticoDoApp[];
+    url?: string;
+  }
+
+  const q = <T extends Element>(seletor: string) => document.querySelector<T>(seletor)!;
+  const telas = {
+    entrar: q<HTMLElement>('.tela-entrar'),
+    lista: q<HTMLElement>('.tela-lista'),
+    detalhe: q<HTMLElement>('.tela-detalhe'),
+    canticos: q<HTMLElement>('.tela-canticos'),
+  };
+  const campo = (id: string) => q<HTMLInputElement>(`#a-${id}`);
+  const cifra = q<HTMLTextAreaElement>('#a-cifra');
+  const avisoDetalhe = q<HTMLElement>('.aviso-detalhe');
+  const avisoLista = q<HTMLElement>('.aviso-lista');
+  let aberta: Detalhe | undefined;
+
+  const mostrar = (qual: keyof typeof telas) => {
+    for (const [nome, tela] of Object.entries(telas)) tela.hidden = nome !== qual;
+    scrollTo(0, 0);
+  };
+
+  /** Chamada à API do painel; sessão vencida volta para a tela de entrar. */
+  async function api(caminho: string, opcoes: { metodo?: string; corpo?: unknown } = {}) {
+    const resposta = await fetch(`/api/admin${caminho}`, {
+      method: opcoes.metodo ?? 'GET',
+      headers: { 'content-type': 'application/json' },
+      ...(opcoes.corpo === undefined ? {} : { body: JSON.stringify(opcoes.corpo) }),
+    });
+    const corpo: Resposta = await resposta.json().catch(() => ({}));
+    if (resposta.status === 401 && caminho !== '/entrar') mostrar('entrar');
+    return { status: resposta.status, corpo };
+  }
+
+  const data = (iso: string) =>
+    new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+  // ---- Entrar
+  q('.form-entrar').addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    const erro = q<HTMLElement>('#erro-senha');
+    const { status, corpo } = await api('/entrar', { metodo: 'POST', corpo: { senha: q<HTMLInputElement>('#senha').value } });
+    if (status === 200) {
+      q<HTMLInputElement>('#senha').value = '';
+      erro.textContent = '';
+      await abrirLista();
+    } else {
+      erro.textContent = corpo.erro ?? 'Não foi possível entrar.';
+    }
+  });
+
+  // ---- Lista
+  async function abrirLista(mensagem = '') {
+    const { status, corpo } = await api('/sugestoes');
+    if (status !== 200) return;
+    const sugestoes = corpo.sugestoes ?? [];
+    const preencher = (lista: HTMLUListElement, itens: Resumo[], vazio: string) => {
+      if (itens.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'vazio';
+        li.textContent = vazio;
+        lista.replaceChildren(li);
+        return;
+      }
+      lista.replaceChildren(
+        ...itens.map((s) => {
+          const li = q<HTMLTemplateElement>('.modelo-item').content.firstElementChild!.cloneNode(true) as HTMLLIElement;
+          li.querySelector('.nome')!.textContent = s.titulo;
+          li.querySelector('.quando')!.textContent = `Enviada em ${data(s.criadaEm)}`;
+          li.querySelector('button')!.addEventListener('click', () => void abrirDetalhe(s.id));
+          return li;
+        }),
+      );
+    };
+    preencher(q('.lista-novos'), sugestoes.filter((s) => s.tipo === 'novo'), 'Nenhum cântico novo esperando.');
+    preencher(q('.lista-correcoes'), sugestoes.filter((s) => s.tipo === 'correcao'), 'Nenhuma correção esperando.');
+    const total = sugestoes.length;
+    avisoLista.textContent = [
+      mensagem,
+      total === 0 ? 'Nenhuma sugestão esperando.' : total === 1 ? '1 sugestão esperando.' : `${total} sugestões esperando.`,
+    ]
+      .filter(Boolean)
+      .join(' ');
+    mostrar('lista');
+  }
+
+  q('.atualizar').addEventListener('click', () => void abrirLista());
+  q('.sair').addEventListener('click', async () => {
+    await api('/sair', { metodo: 'POST' });
+    mostrar('entrar');
+  });
+  q('.voltar-lista').addEventListener('click', () => void abrirLista());
+
+  // ---- Detalhe
+  const escolher = (select: HTMLSelectElement, valor: string) => {
+    if (![...select.options].some((o) => o.value === valor)) select.add(new Option(valor, valor));
+    select.value = valor;
+  };
+
+  const atualizarPrevia = () => desenharCifra(q('.previa-cifra'), converterCifra(cifra.value).chordpro);
+
+  function mostrarDiferenca(antes: string, depois: string) {
+    const linhas = diferencaDeLinhas(antes.split('\n'), depois.split('\n'));
+    const caixa = q<HTMLElement>('.diferenca');
+    q<HTMLElement>('.mudancas').hidden = false;
+    if (!houveMudanca(linhas)) {
+      caixa.textContent = 'A cifra sugerida é igual à atual (a mudança deve estar no título, tom, compasso ou BPM).';
+      return;
+    }
+    caixa.replaceChildren(
+      ...linhas.map((l) => {
+        const p = document.createElement('p');
+        p.className = `linha-dif ${l.tipo}`;
+        const marca = document.createElement('span');
+        marca.className = 'marca';
+        marca.textContent = l.tipo === 'saiu' ? '−' : l.tipo === 'entrou' ? '+' : ' ';
+        const oculto = document.createElement('span');
+        oculto.className = 'visualmente-oculto';
+        oculto.textContent = l.tipo === 'saiu' ? 'Sai: ' : l.tipo === 'entrou' ? 'Entra: ' : '';
+        p.append(marca, oculto, l.texto || ' ');
+        return p;
+      }),
+    );
+  }
+
+  async function abrirDetalhe(id: string) {
+    const { status, corpo } = await api(`/sugestoes/${encodeURIComponent(id)}`);
+    if (status !== 200) {
+      avisoLista.textContent = corpo.erro ?? 'Não foi possível abrir a sugestão.';
+      return;
+    }
+    const detalhe = corpo as unknown as Detalhe;
+    aberta = detalhe;
+    const { sugestao, atual } = detalhe;
+    const d = sugestao.dados;
+    q('.tipo-detalhe').textContent = sugestao.tipo === 'novo' ? 'Cântico novo' : 'Correção';
+    q('#titulo-detalhe').textContent = d.titulo;
+
+    const quem = q<HTMLElement>('.quem');
+    const linhas: [string, string | undefined][] = [
+      ['Enviada em', data(sugestao.criadaEm)],
+      ['Nome', d.nome],
+      ['Contato', d.contato],
+      ['O que corrigiu', d.observacao],
+    ];
+    quem.replaceChildren(
+      ...linhas.flatMap(([rotulo, valor]) => {
+        if (!valor) return [];
+        const dt = document.createElement('dt');
+        dt.textContent = rotulo;
+        const dd = document.createElement('dd');
+        dd.textContent = valor;
+        return [dt, dd];
+      }),
+    );
+
+    campo('titulo').value = d.titulo;
+    campo('numero').value = String(sugestao.tipo === 'novo' ? detalhe.numeroSugerido : (atual?.numero ?? ''));
+    campo('bpm').value = d.bpm ? String(d.bpm) : '';
+    escolher(q('#a-tom'), d.tom);
+    escolher(q('#a-compasso'), d.compasso);
+    cifra.value = d.cifra;
+    atualizarPrevia();
+
+    q<HTMLElement>('.mudancas').hidden = true;
+    if (atual) mostrarDiferenca(atual.texto, d.cifra);
+    for (const saida of document.querySelectorAll('.form-aprovar .mensagem-erro')) saida.textContent = '';
+    avisoDetalhe.textContent = detalhe.erro ?? '';
+    mostrar('detalhe');
+    q<HTMLElement>('#titulo-detalhe').focus();
+  }
+
+  let espera: ReturnType<typeof setTimeout> | undefined;
+  cifra.addEventListener('input', () => {
+    clearTimeout(espera);
+    espera = setTimeout(atualizarPrevia, 250);
+  });
+
+  const numeroDoCampo = (id: string) => (campo(id).value.trim() === '' ? null : Number(campo(id).value));
+
+  q('.form-aprovar').addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    if (!aberta) return;
+    const botao = q<HTMLButtonElement>('.aprovar');
+    botao.disabled = true;
+    avisoDetalhe.textContent = 'Publicando…';
+    const { status, corpo } = await api(`/sugestoes/${encodeURIComponent(aberta.sugestao.id)}/aprovar`, {
+      metodo: 'POST',
+      corpo: {
+        titulo: campo('titulo').value,
+        numero: numeroDoCampo('numero'),
+        bpm: numeroDoCampo('bpm'),
+        tom: q<HTMLSelectElement>('#a-tom').value,
+        compasso: q<HTMLSelectElement>('#a-compasso').value,
+        cifra: cifra.value,
+        ...(aberta.atual ? { sha: aberta.atual.sha } : {}),
+      },
+    });
+    botao.disabled = false;
+    for (const nome of ['titulo', 'numero', 'bpm', 'tom', 'compasso', 'cifra']) {
+      q(`#e-${nome}`).textContent = corpo.erros?.[nome] ?? '';
+    }
+    if (status === 200) {
+      await abrirLista('Aprovado! O cântico aparece no app em uns 2 minutos.');
+      return;
+    }
+    avisoDetalhe.textContent = corpo.erros
+      ? 'Falta arrumar o que está marcado em vermelho.'
+      : (corpo.erro ?? 'Não foi possível publicar agora.');
+  });
+
+  q('.recusar').addEventListener('click', async () => {
+    if (!aberta || !confirm(`Recusar a sugestão “${aberta.sugestao.dados.titulo}”? Ela some da lista.`)) return;
+    const { status, corpo } = await api(`/sugestoes/${encodeURIComponent(aberta.sugestao.id)}/recusar`, { metodo: 'POST' });
+    if (status === 200) await abrirLista('Sugestão recusada.');
+    else avisoDetalhe.textContent = corpo.erro ?? 'Não foi possível recusar agora.';
+  });
+
+  // ---- Cânticos do app (excluir)
+  const listaApp = q<HTMLUListElement>('.lista-app');
+  const filtro = q<HTMLInputElement>('#filtro-canticos');
+  const avisoCanticos = q<HTMLElement>('.aviso-canticos');
+  const telaExcluir = q<HTMLDialogElement>('.tela-excluir');
+  let doApp: CanticoDoApp[] = [];
+  /** Já excluídos nesta visita: o site só deixa de listá-los depois de refeito (uns 2 minutos). */
+  const excluidos = new Set<string>();
+  let paraExcluir: CanticoDoApp | undefined;
+
+  const semAcento = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+  function desenharCanticos() {
+    const busca = semAcento(filtro.value.trim());
+    const visiveis = doApp.filter(
+      (c) => !excluidos.has(c.id) && (busca === '' || semAcento(`${c.numero ?? ''} ${c.titulo}`).includes(busca)),
+    );
+    if (visiveis.length === 0) {
+      const li = document.createElement('li');
+      li.className = 'vazio';
+      li.textContent = busca ? 'Nenhum cântico com esse nome ou número.' : 'Nenhum cântico no app.';
+      listaApp.replaceChildren(li);
+      return;
+    }
+    listaApp.replaceChildren(
+      ...visiveis.map((c) => {
+        const li = q<HTMLTemplateElement>('.modelo-cantico').content.firstElementChild!.cloneNode(true) as HTMLLIElement;
+        li.querySelector('.numero-app')!.textContent = c.numero === undefined ? '' : `${c.numero} · `;
+        li.querySelector('.titulo-app')!.textContent = c.titulo;
+        li.querySelector('.rotulo-excluir')!.textContent = `Excluir ${c.titulo}`;
+        li.querySelector('button')!.addEventListener('click', () => {
+          paraExcluir = c;
+          q('.pergunta-excluir').textContent = `Excluir “${c.titulo}” do app?`;
+          telaExcluir.showModal();
+        });
+        return li;
+      }),
+    );
+  }
+
+  async function abrirCanticos() {
+    const { status, corpo } = await api('/canticos');
+    if (status !== 200) {
+      avisoLista.textContent = corpo.erro ?? 'Não foi possível abrir os cânticos do app.';
+      return;
+    }
+    doApp = corpo.canticos ?? [];
+    filtro.value = '';
+    avisoCanticos.textContent = '';
+    desenharCanticos();
+    mostrar('canticos');
+    q<HTMLElement>('#titulo-canticos').focus();
+  }
+
+  q('.abrir-canticos').addEventListener('click', () => void abrirCanticos());
+  q('.voltar-sugestoes').addEventListener('click', () => void abrirLista());
+  filtro.addEventListener('input', desenharCanticos);
+  q('.cancelar-excluir').addEventListener('click', () => telaExcluir.close());
+
+  q('.confirmar-excluir').addEventListener('click', async () => {
+    if (!paraExcluir) return;
+    const cantico = paraExcluir;
+    const botao = q<HTMLButtonElement>('.confirmar-excluir');
+    botao.disabled = true;
+    const { status, corpo } = await api(`/canticos/${encodeURIComponent(cantico.id)}/excluir`, { metodo: 'POST' });
+    botao.disabled = false;
+    telaExcluir.close();
+    if (status === 200 || status === 404) excluidos.add(cantico.id); // 404: já tinha sido excluído
+    avisoCanticos.textContent =
+      status === 200
+        ? `“${cantico.titulo}” excluído. Some do app em uns 2 minutos.`
+        : (corpo.erro ?? 'Não foi possível excluir agora.');
+    desenharCanticos();
+    filtro.focus();
+  });
+
+  // ---- Começo: já está logado?
+  document.querySelector('.sem-js')?.remove();
+  void api('/sessao').then(({ status }) => (status === 200 ? abrirLista() : mostrar('entrar')));
+</script>
+
+<style>
+  h1 {
+    margin-block: var(--espaco-4);
+  }
+
+  .sem-js,
+  .explica,
+  .dica,
+  .quando {
+    color: var(--cor-texto-secundario);
+  }
+
+  section[hidden],
+  .campo[hidden] {
+    display: none;
+  }
+
+  .tela-entrar,
+  .tela-lista,
+  .tela-detalhe,
+  .tela-canticos,
+  .form-entrar,
+  .form-aprovar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--espaco-4);
+  }
+
+  .campo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start; /* campo ao lado de outro com dica não estica */
+    gap: var(--espaco-2);
+  }
+
+  label {
+    font-weight: var(--peso-forte);
+  }
+
+  .topo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--espaco-3);
+  }
+
+  .grupo {
+    display: grid;
+    gap: var(--espaco-3);
+  }
+
+  .grupo h2,
+  .form-aprovar h2,
+  .mudancas h2 {
+    font-size: var(--texto-corpo);
+  }
+
+  .lista {
+    display: grid;
+    gap: var(--espaco-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .lista :global(.vazio) {
+    color: var(--cor-texto-secundario);
+  }
+
+  .cartao {
+    display: grid;
+    width: 100%;
+    min-height: var(--alvo-toque);
+    padding: var(--espaco-3) var(--espaco-4);
+    border: 0;
+    border-radius: var(--raio);
+    background: var(--cor-superficie);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .nome {
+    font-weight: var(--peso-forte);
+  }
+
+  .item-app {
+    display: flex;
+    align-items: center;
+    gap: var(--espaco-3);
+    min-height: var(--alvo-toque);
+    padding: var(--espaco-2) var(--espaco-2) var(--espaco-2) var(--espaco-4);
+    border-radius: var(--raio);
+    background: var(--cor-superficie);
+  }
+
+  .nome-app {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-weight: var(--peso-forte);
+  }
+
+  .numero-app {
+    color: var(--cor-texto-secundario);
+  }
+
+  .excluir {
+    flex: none;
+  }
+
+  .excluir .icone {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .voltar-app,
+  .voltar-lista,
+  .voltar-sugestoes {
+    justify-self: start;
+  }
+
+  .tipo-detalhe {
+    color: var(--cor-texto-secundario);
+    font-weight: var(--peso-forte);
+  }
+
+  /* Um embaixo do outro: cabe com letra grande e não quebra e-mail no meio. */
+  .quem {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    margin: 0;
+  }
+
+  .quem :global(dt) {
+    color: var(--cor-texto-secundario);
+    font-size: var(--texto-min);
+  }
+
+  .quem :global(dd) {
+    margin: 0 0 var(--espaco-2);
+    overflow-wrap: anywhere;
+  }
+
+  .mudancas,
+  .previa {
+    display: grid;
+    gap: var(--espaco-2);
+    padding: var(--espaco-4);
+    border: var(--borda-largura) solid var(--cor-borda);
+    border-radius: var(--raio);
+  }
+
+  /* Antes × depois: letra de largura fixa para os acordes ficarem no lugar. */
+  .diferenca {
+    overflow-x: auto;
+    font-family: ui-monospace, 'Cascadia Mono', 'Roboto Mono', Menlo, Consolas, monospace;
+    font-size: var(--texto-min);
+  }
+
+  .diferenca :global(.linha-dif) {
+    margin: 0;
+    padding: 0 var(--espaco-2);
+    white-space: pre;
+  }
+
+  .diferenca :global(.marca) {
+    display: inline-block;
+    width: 1.5em;
+    font-weight: var(--peso-forte);
+  }
+
+  .diferenca :global(.saiu) {
+    background: #fde8e7;
+    color: #8c1d18;
+  }
+
+  .diferenca :global(.entrou) {
+    background: #e3f4e6;
+    color: #1b5e20;
+  }
+
+  .area-cifra {
+    min-height: 16em;
+    font-family: ui-monospace, 'Cascadia Mono', 'Roboto Mono', Menlo, Consolas, monospace;
+    font-size: var(--texto-min);
+    line-height: 1.4;
+    white-space: pre;
+    overflow-x: auto;
+    resize: vertical;
+  }
+
+  select.campo-texto {
+    appearance: auto;
+  }
+
+  .lado-a-lado {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espaco-3);
+  }
+
+  .lado-a-lado > * {
+    flex: 1 1 8em;
+    min-width: 0;
+  }
+
+  .aviso-detalhe:empty,
+  .aviso-lista:empty,
+  .aviso-canticos:empty {
+    display: none;
+  }
+
+  .aviso-detalhe,
+  .aviso-lista,
+  .aviso-canticos {
+    padding: var(--espaco-3) var(--espaco-4);
+    border-radius: var(--raio);
+    background: var(--cor-superficie);
+    font-weight: var(--peso-forte);
+  }
+
+  .decisao {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espaco-3);
+    padding-bottom: var(--espaco-5);
+  }
+
+  .decisao .botao {
+    flex: 1 1 10em;
+  }
+</style>

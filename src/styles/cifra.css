@@ -1,0 +1,67 @@
+/*
+ * Desenho da cifra (acorde vermelho em cima da letra). Usado na tela do cântico, nas prévias
+ * de Tom e Tamanho e na prévia de "Sugerir cântico". Tudo preso a .desenho-cifra para não
+ * pegar outros elementos com os mesmos nomes de classe.
+ */
+.desenho-cifra .secao {
+  margin-bottom: var(--espaco-5);
+}
+
+.desenho-cifra .refrao {
+  padding-left: var(--espaco-3);
+  border-left: 4px solid var(--cor-borda);
+}
+
+.desenho-cifra .titulo-secao {
+  font-size: 0.95em; /* acompanha o tamanho da letra; 19 px no tamanho normal */
+  font-weight: var(--peso-normal);
+  color: var(--cor-texto-secundario);
+  margin-bottom: var(--espaco-1);
+}
+
+.desenho-cifra .linha {
+  margin-bottom: var(--espaco-2);
+}
+
+/* Cada palavra é um bloco: a linha só quebra entre palavras. */
+.desenho-cifra .palavra {
+  display: inline-flex;
+  align-items: flex-end;
+  /* Toda palavra tem a fileira do acorde (mesmo vazia); alinhar pela base
+     mantém a letra numa linha só, com ou sem acorde em cima. */
+  vertical-align: bottom;
+}
+
+.desenho-cifra .peca {
+  display: inline-flex;
+  flex-direction: column;
+}
+
+.desenho-cifra .acorde {
+  min-height: calc(1em * var(--entrelinha));
+  padding-right: 0.3em;
+  color: var(--cor-acorde);
+  font-weight: var(--peso-forte);
+  white-space: nowrap;
+}
+
+.desenho-cifra .nao-acorde {
+  color: var(--cor-texto-secundario);
+  font-weight: var(--peso-normal);
+}
+
+.desenho-cifra .texto {
+  white-space: pre;
+}
+
+/* Acorde depois do fim da letra: o texto embaixo dele é vazio, mas guarda a altura da
+   linha para o acorde ficar em cima, e não na altura da letra. */
+.desenho-cifra .linha:not([data-so-acordes]) .texto {
+  min-height: calc(1em * var(--entrelinha));
+}
+
+/* Só letra: some a fileira de acordes e as linhas que só têm acordes. */
+.desenho-cifra[data-modo='letra'] .acorde,
+.desenho-cifra[data-modo='letra'] [data-so-acordes] {
+  display: none;
+}

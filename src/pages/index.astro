@@ -66,6 +66,12 @@ const itens = itensDaLista(await getCollection('canticos'));
     <ul class="lista resultados-letra"></ul>
   </section>
 
+  <section class="sugerir" aria-labelledby="titulo-sugerir">
+    <h2 id="titulo-sugerir">Não achou o cântico?</h2>
+    <p>Sugira um cântico novo. Uma pessoa responsável confere antes de ele entrar no app.</p>
+    <a class="botao link-sugerir" data-variante="secundario" href="/sugerir/">Sugerir um cântico</a>
+  </section>
+
   <template class="modelo-resultado">
     <li>
       <a class="cartao">
@@ -165,6 +171,7 @@ const itens = itensDaLista(await getCollection('canticos'));
   const campo = document.querySelector<HTMLInputElement>('#busca');
   const aviso = document.querySelector<HTMLParagraphElement>('.aviso-busca');
   const linhas = [...document.querySelectorAll<HTMLLIElement>('.lista > li')];
+  const linkSugerir = document.querySelector<HTMLAnchorElement>('.link-sugerir')!;
 
   if (form && campo && aviso) {
     form.hidden = false;
@@ -191,6 +198,11 @@ const itens = itensDaLista(await getCollection('canticos'));
           mostrados.add(li.dataset['id'] ?? '');
         }
       }
+
+      // "Sugerir um cântico" já leva o nome buscado (número sozinho não é nome).
+      const nomeBuscado = busca.trim();
+      linkSugerir.href =
+        nomeBuscado && !/^\d+$/.test(nomeBuscado) ? `/sugerir/?titulo=${encodeURIComponent(nomeBuscado)}` : '/sugerir/';
 
       if (busca.trim() === '') {
         aviso.textContent = '';
@@ -327,6 +339,23 @@ const itens = itensDaLista(await getCollection('canticos'));
 
   .instalar-botoes .botao {
     flex: 1 1 8em;
+  }
+
+  .sugerir {
+    display: grid;
+    gap: var(--espaco-3);
+    margin-block: var(--espaco-4);
+    padding: var(--espaco-4);
+    border: var(--borda-largura) solid var(--cor-superficie);
+    border-radius: var(--raio);
+  }
+
+  .sugerir h2 {
+    font-size: var(--texto-corpo);
+  }
+
+  .sugerir p {
+    color: var(--cor-texto-secundario);
   }
 
   .na-letra {

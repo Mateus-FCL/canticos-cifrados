@@ -6,6 +6,7 @@
  * - Com "reduzir movimento" ligado no sistema, a tela pula de linha em linha em vez de deslizar.
  */
 import {
+  BPM_PADRAO,
   avancar,
   batidaNaPosicao,
   inicios,
@@ -21,8 +22,11 @@ export function iniciarRolagem() {
   const cifra = document.querySelector<HTMLElement>('.cifra');
   const abrir = document.querySelector<HTMLButtonElement>('.abrir-rolagem');
   const barra = document.querySelector<HTMLElement>('.barra-rolagem');
-  const bpm = Number(cifra?.dataset['bpm']);
-  if (!cifra || !abrir || !barra || !bpm) return;
+  // Sem BPM informado, a rolagem usa um andamento médio e avisa a pessoa.
+  const bpmInformado = Number(cifra?.dataset['bpm']) || undefined;
+  const bpm = bpmInformado ?? BPM_PADRAO;
+  const avisoBpm = document.querySelector<HTMLDialogElement>('.aviso-bpm');
+  if (!cifra || !abrir || !barra) return;
 
   const q = <T extends Element>(seletor: string) => barra.querySelector<T>(seletor)!;
   const estado = q<HTMLElement>('.estado-rolagem');
@@ -67,7 +71,7 @@ export function iniciarRolagem() {
     barra.toggleAttribute('data-pausado', !rodando);
     pausar.querySelector('.icone-rolagem')!.textContent = rodando ? '⏸' : '▶';
     pausar.querySelector('.palavra-rolagem')!.textContent = rodando ? ' Pausar' : ' Continuar';
-    detalhe.textContent = `${bpm} BPM · ${rotuloVelocidade(velocidade)}`;
+    detalhe.textContent = `${bpm} BPM${bpmInformado ? '' : ' (estimado)'} · ${rotuloVelocidade(velocidade)}`;
     devagar.disabled = velocidade <= 0.5;
     rapido.disabled = velocidade >= 1.5;
   };
@@ -129,7 +133,13 @@ export function iniciarRolagem() {
   };
 
   abrir.hidden = false;
-  abrir.addEventListener('click', abrirBarra);
+  // Sem BPM: primeiro o aviso; ao fechar ("Entendi" ou Esc), a rolagem começa.
+  abrir.addEventListener('click', () => {
+    if (bpmInformado || !avisoBpm) abrirBarra();
+    else avisoBpm.showModal();
+  });
+  avisoBpm?.querySelector('.entendi-bpm')?.addEventListener('click', () => avisoBpm.close());
+  avisoBpm?.addEventListener('close', abrirBarra);
   q('.fechar-rolagem').addEventListener('click', fecharBarra);
   pausar.addEventListener('click', () => (rodando ? parar('Pausado.') : comecar()));
 

@@ -7,9 +7,11 @@ interface Props {
   aba?: 'canticos' | 'setlists';
   /** A tela Sem internet já mostra o aviso fixo; as outras mostram só quando a internet cai. */
   avisoSemInternet?: boolean;
+  /** Páginas internas (ex.: painel do admin) que não devem aparecer em buscadores. */
+  semIndexar?: boolean;
 }
 
-const { titulo, aba, avisoSemInternet = true } = Astro.props;
+const { titulo, aba, avisoSemInternet = true, semIndexar = false } = Astro.props;
 
 const abas = [
   { id: 'canticos', rotulo: 'Cânticos', href: '/' },
@@ -30,6 +32,7 @@ const abas = [
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icones/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-title" content="Cânticos" />
+    {semIndexar && <meta name="robots" content="noindex, nofollow" />}
     <title>{titulo === 'Cânticos' ? titulo : `${titulo} · Cânticos`}</title>
   </head>
   <body>
