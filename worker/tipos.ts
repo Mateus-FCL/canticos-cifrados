@@ -19,6 +19,4 @@ export interface Ambiente {
   BANCO: D1;
   /** Os arquivos do site (dist/), para conferir se um cântico existe. */
   ASSETS: { fetch(pedido: Request | string): Promise<Response> };
-  /** Chave secreta do Turnstile (segredo no painel da Cloudflare). */
-  TURNSTILE_SECRET?: string;
 }

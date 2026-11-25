@@ -18,10 +18,10 @@ describe('regras da hospedagem (public/_headers)', () => {
     expect(bloco('/*')).toMatch(/Content-Security-Policy: default-src 'self'/);
   });
 
-  it('libera só a verificação "não sou robô" da Cloudflare (Turnstile), nada além', () => {
+  it('scripts só do próprio app (sem serviços de fora)', () => {
     const csp = bloco('/*');
-    expect(csp).toMatch(/script-src 'self' 'wasm-unsafe-eval' https:\/\/challenges\.cloudflare\.com;/);
-    expect(csp).toMatch(/frame-src https:\/\/challenges\.cloudflare\.com;/);
+    expect(csp).toMatch(/script-src 'self' 'wasm-unsafe-eval';/);
+    expect(csp).not.toMatch(/challenges\.cloudflare\.com/);
   });
 
   it('CSS e scripts do build ficam guardados no navegador por um ano (o nome muda a cada versão)', () => {

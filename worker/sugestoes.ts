@@ -1,6 +1,6 @@
 /**
  * POST /api/sugestoes: recebe a sugestão (novo cântico ou correção) e guarda como pendente,
- * para o admin aprovar. Tudo que fala com o mundo de fora (banco, verificação de robô,
+ * para o admin aprovar. Tudo que fala com o mundo de fora (banco,
  * arquivos do site) chega por `Dependencias`, para os testes trocarem por versões de mentira.
  */
 import { errosDaSugestao, type Sugestao } from '../src/lib/sugestao';
@@ -28,8 +28,6 @@ export interface BancoDeSugestoes {
 
 export interface Dependencias {
   banco: BancoDeSugestoes;
-  /** Turnstile: confirma que quem enviou é uma pessoa. */
-  confirmarHumano(token: string, ip: string): Promise<boolean>;
   canticoExiste(id: string): Promise<boolean>;
   resumoDoIp(ip: string): Promise<string>;
   agora(): Date;
@@ -82,15 +80,15 @@ export async function receberSugestao(pedido: Request, deps: Dependencias): Prom
   if (typeof corpo !== 'object' || corpo === null) return json({ erro: 'Pedido inválido.' }, 400);
   const campos = corpo as Record<string, unknown>;
 
+  // Armadilha: campo escondido que pessoas não veem e robôs costumam preencher. Quem preenche
+  // recebe "enviada" (para não insistir), mas nada é guardado.
+  if (texto(campos['site']).trim() !== '') return json({ ok: true }, 201);
+
   const sugestao = lerSugestao(campos);
   const erros = errosDaSugestao(sugestao);
   if (Object.keys(erros).length > 0) return json({ erros }, 422);
 
   const ip = pedido.headers.get('cf-connecting-ip') ?? '';
-  if (!(await deps.confirmarHumano(texto(campos['token']), ip))) {
-    return json({ erro: 'Não foi possível confirmar que você não é um robô. Tente de novo.' }, 400);
-  }
-
   const resumoIp = await deps.resumoDoIp(ip);
   const agora = deps.agora();
   const umaHoraAtras = new Date(agora.getTime() - 60 * 60 * 1000).toISOString();

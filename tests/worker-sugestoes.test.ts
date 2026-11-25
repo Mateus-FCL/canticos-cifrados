@@ -7,14 +7,12 @@ const valida = {
   cifra: 'G        D\nGrande é o Senhor',
   tom: 'G',
   compasso: '4/4',
-  token: 'token-do-robo',
 };
 
 /** Banco e verificações de mentira: guardam o que receberam para o teste conferir. */
-function preparar(opcoes: { robo?: boolean; recentes?: number; canticoExiste?: boolean } = {}) {
+function preparar(opcoes: { recentes?: number; canticoExiste?: boolean } = {}) {
   const guardadas: SugestaoGuardada[] = [];
   const deps: Dependencias = {
-    confirmarHumano: async (token) => token === 'token-do-robo' && opcoes.robo !== true,
     canticoExiste: async () => opcoes.canticoExiste ?? true,
     banco: {
       contarRecentes: async () => opcoes.recentes ?? 0,
@@ -52,10 +50,17 @@ describe('receber uma sugestão', () => {
     expect(guardadas[0]?.dados.titulo).toBe('Grande é o Senhor');
   });
 
-  it('não guarda o código do robô junto com a sugestão', async () => {
+  it('não guarda o campo-armadilha junto com a sugestão', async () => {
     const { deps, guardadas } = preparar();
-    await receberSugestao(pedido(valida), deps);
-    expect(guardadas[0]?.dados).not.toHaveProperty('token');
+    await receberSugestao(pedido({ ...valida, site: '' }), deps);
+    expect(guardadas[0]?.dados).not.toHaveProperty('site');
+  });
+
+  it('robô que preenche o campo-armadilha recebe "enviada", mas nada é guardado', async () => {
+    const { deps, guardadas } = preparar();
+    const resposta = await receberSugestao(pedido({ ...valida, site: 'https://spam.exemplo' }), deps);
+    expect(resposta.status).toBe(201);
+    expect(guardadas).toHaveLength(0);
   });
 
   it('só aceita envios vindos do próprio app', async () => {
@@ -104,14 +109,6 @@ describe('receber uma sugestão', () => {
     const resposta = await receberSugestao(pedido({ ...valida, bpm: null }), deps);
     expect(resposta.status).toBe(201);
     expect(guardadas[0]?.dados).not.toHaveProperty('bpm');
-  });
-
-  it('sem passar pela verificação de robô, não guarda', async () => {
-    const { deps, guardadas } = preparar({ robo: true });
-    const resposta = await receberSugestao(pedido(valida), deps);
-    expect(resposta.status).toBe(400);
-    expect(await resposta.json()).toMatchObject({ erro: expect.stringMatching(/robô/) });
-    expect(guardadas).toHaveLength(0);
   });
 
   it('muitas sugestões do mesmo lugar em pouco tempo: pede para esperar', async () => {

@@ -1,17 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
 import { COMPASSOS, LIMITES, TONS } from '../lib/sugestao';
-
-// Chave pública do Turnstile ("não sou robô"), lida no build: primeiro do ambiente do build
-// (variável da Cloudflare), depois do .env. Sem ela, usa a chave de teste da Cloudflare, que
-// sempre aprova e mostra "Somente para teste" (ver docs/sugestoes.md).
-const CHAVE_DE_TESTE = '1x00000000000000000000AA';
-const chaveConfigurada: string | undefined =
-  process.env['PUBLIC_TURNSTILE_SITE_KEY']?.trim() || import.meta.env.PUBLIC_TURNSTILE_SITE_KEY?.trim();
-if (!chaveConfigurada) {
-  console.warn('[sugerir] PUBLIC_TURNSTILE_SITE_KEY não encontrada no build: usando a chave de TESTE do Turnstile.');
-}
-const chaveTurnstile = chaveConfigurada || CHAVE_DE_TESTE;
 ---
 
 <Base titulo="Sugerir cântico">
@@ -137,10 +126,11 @@ const chaveTurnstile = chaveConfigurada || CHAVE_DE_TESTE;
       </div>
     </fieldset>
 
-    <div class="campo">
-      <p class="dica">Antes de enviar, a página confere que você não é um robô:</p>
-      <div class="cf-turnstile" data-sitekey={chaveTurnstile} data-language="pt-br" data-theme="light" data-size="flexible">
-      </div>
+    <!-- Armadilha para robôs: escondida de pessoas (e do leitor de tela). Se vier preenchida,
+         o servidor finge que recebeu e não guarda nada. -->
+    <div class="armadilha" aria-hidden="true">
+      <label for="site">Não preencha este campo</label>
+      <input id="site" name="site" type="text" tabindex="-1" autocomplete="off" />
     </div>
 
     <p class="aviso-envio" role="status" aria-live="polite"></p>
@@ -157,9 +147,6 @@ const chaveTurnstile = chaveConfigurada || CHAVE_DE_TESTE;
     Enviar sugestão
   </button>
 </Base>
-
-<!-- Verificação "não sou robô" da Cloudflare (liberada no _headers). -->
-<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
 <script>
   import { cifraParaTexto, converterCifra, linkDeBusca } from '../lib/conversor';
@@ -178,9 +165,6 @@ const chaveTurnstile = chaveConfigurada || CHAVE_DE_TESTE;
   const compasso = q<HTMLSelectElement>('#compasso');
   const bpm = q<HTMLInputElement>('#bpm');
   const aviso = q<HTMLElement>('.aviso-envio');
-  /** O Turnstile põe a resposta neste campo escondido dentro do formulário. */
-  const tokenDoRobo = () => form.querySelector<HTMLInputElement>('[name="cf-turnstile-response"]')?.value ?? '';
-  const reiniciarRobo = () => (window as { turnstile?: { reset(): void } }).turnstile?.reset();
   const campo = (nome: string) => q<HTMLInputElement | HTMLTextAreaElement>(`#${nome}`);
 
   const parametros = new URLSearchParams(location.search);
@@ -240,19 +224,13 @@ const chaveTurnstile = chaveConfigurada || CHAVE_DE_TESTE;
       aviso.textContent = 'Falta arrumar o que está marcado em vermelho.';
       return;
     }
-    const token = tokenDoRobo();
-    if (!token) {
-      aviso.textContent = 'Espere a verificação "não sou robô" terminar (logo acima) e toque em Enviar de novo.';
-      return;
-    }
-
     enviar.disabled = true;
     aviso.textContent = 'Enviando…';
     try {
       const resposta = await fetch('/api/sugestoes', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ ...sugestao, token }),
+        body: JSON.stringify({ ...sugestao, site: campo('site').value }),
       });
       const corpo: { erro?: string; erros?: Record<string, string> } = await resposta.json().catch(() => ({}));
       if (resposta.status === 201) {
@@ -272,7 +250,6 @@ const chaveTurnstile = chaveConfigurada || CHAVE_DE_TESTE;
       aviso.textContent = 'Não foi possível enviar. Confira a internet e tente de novo.';
     } finally {
       enviar.disabled = false;
-      reiniciarRobo();
     }
   });
 
@@ -432,6 +409,15 @@ const chaveTurnstile = chaveConfigurada || CHAVE_DE_TESTE;
     padding: var(--espaco-4);
     border: var(--borda-largura) solid var(--cor-superficie);
     border-radius: var(--raio);
+  }
+
+  /* Fora da tela: pessoas não veem; robôs que preenchem tudo caem nela. */
+  .armadilha {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
   }
 
   .enviada {
